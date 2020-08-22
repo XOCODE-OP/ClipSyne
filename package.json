@@ -1,0 +1,23 @@
+{
+  "name": "ClipSyne",
+  "version": "1.0.0",
+  "description": "my favorite clipboard manager is windows only, so im gonna make my own",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "rebuild": "electron-rebuild"
+  },
+  "repository": "https://github.com/XOCODE-OP/ClipSyne",
+  "keywords": [],
+  "author": "XO",
+  "license": "",
+  "devDependencies": {
+    "electron": "^8.2.5",
+    "electron-builder": "^22.6.0",
+    "electron-rebuild": "^1.8.5"
+  },
+  "dependencies": {
+    "dexie": "^3.0.0"
+  }
+}
