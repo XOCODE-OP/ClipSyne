@@ -9,7 +9,80 @@ const dexie = require('dexie');
 dexie.debug = true;
 const db = new dexie("history");
 
-const input = document.querySelector('input');
+var searchfield;
+var thisWindow;
+var rightMouseDown = false;
+
+document.addEventListener('DOMContentLoaded', (event) => {
+    thisWindow =  remote.getCurrentWindow();
+    searchfield = document.querySelector('#searchfield');
+    searchfield.style.display = 'none';
+});
+
+
+
+setTimeout(function()
+{
+    document.addEventListener('keyup', function(e)
+    {
+        //focusable.push(input);
+    
+        if (e.key === 'Enter')
+        {
+            
+        } else if (e.key === 'Escape') {
+        //    input.value = ''
+            thisWindow.close();
+        } else
+        { 
+            //this trigger auto when summoning the app via global shortcut
+            //because of this we do the timeout
+            searchfield.style.display = 'block';
+            searchfield.focus();
+        }
+    });
+}
+, 300);
+
+// document.addEventListener('keydown', function(e) {
+//     thisWindow.setPosition(thisWindow.x, thisWindow.y - 10);
+// });
+
+document.addEventListener("mouseup", function(e)
+{
+    if (e.button == 2) {rightMouseDown = false;}
+});
+
+
+document.addEventListener("mousedown", function(e)
+{
+    if (e.button == 2) {rightMouseDown = true;}
+});
+
+document.addEventListener("mousemove", function(e)
+{
+    if (rightMouseDown)
+    {
+        let _x = (thisWindow.getPosition()[0] + e.movementX);
+        let _y = (thisWindow.getPosition()[1] + e.movementY);
+        thisWindow.setPosition(_x, _y, 0);
+    }
+});
+
+
+document.addEventListener("click", function()
+{
+    //console.log("ble");
+    
+
+    console.log(thisWindow);
+    thisWindow.setPosition(thisWindow.x - 10, thisWindow.y, 0);
+});
+
+
+/*
+
+
 const table = document.querySelector('table');
 
 remote.getCurrentWindow().on('show', function() {
@@ -89,15 +162,14 @@ function refreshView() {
         });
 }
 
-const { ipcRenderer } = require('electron')
+// const { ipcRenderer } = require('electron')
     //console.log(ipcRenderer.send('asynchronous-message', 'ping')) // prints "pong"
 
-/*ipcRenderer.on('asynchronous-message', (event, arg) => {
-    console.log(arg) // prints "ping"
-    setTimeout(() => ipcRenderer.send('asynchronous-message', 'ping'), 1000)
-})
-
-ipcRenderer.send('asynchronous-message', 'ping')*/
+// ipcRenderer.on('asynchronous-message', (event, arg) => {
+//     console.log(arg) // prints "ping"
+//     setTimeout(() => ipcRenderer.send('asynchronous-message', 'ping'), 1000)
+// })
+// ipcRenderer.send('asynchronous-message', 'ping')
 
 setTimeout(async() => {
     await db.version(1).stores({ history: "++id,text" });
@@ -106,13 +178,13 @@ setTimeout(async() => {
 
     let previousText = clipboard.readText();
 
-    /*try {
-        previousText = (await db.history.last()).text;
-    } catch (e) {
-        previousText = '';
-        //console.log(e);
-    }
-    console.log('previousText:' + previousText)*/
+    // try {
+    //     previousText = (await db.history.last()).text;
+    // } catch (e) {
+    //     previousText = '';
+    //     //console.log(e);
+    // }
+    // console.log('previousText:' + previousText);
 
     setInterval(async() => {
         if (previousText !== clipboard.readText()) {
@@ -133,3 +205,5 @@ setTimeout(async() => {
         }
     }, 100)
 });
+
+*/

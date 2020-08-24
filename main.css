@@ -1,8 +1,42 @@
+@font-face
+{
+    font-family: 'opensans';
+    src: url('OpenSans-Regular.ttf') format('truetype');
+}  
+
+button,
+input,
+optgroup,
+select,
+textarea,html input[type="button"],
+input[type="reset"],
+input[type="submit"],button[disabled],
+html input[disabled],button::-moz-focus-inner,
+input::-moz-focus-inner, input[type="checkbox"],
+input[type="radio"], input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button, input[type="search"], input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration
+{
+    border:none;
+    background-image:none;
+    background-color:transparent;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+}
+
+*
+{
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'opensans';
+    user-select: none;
+}
+
 html
 {
-    border-style: solid;
-    border-color: slategray;
-    border-width: 5px;
+    /* border: 1px solid orange; */
     width: 100%;
     height: 100%;
 }
@@ -12,7 +46,9 @@ body
     width: 100%;
     overflow-y: hidden;
     overflow-x: hidden;
-    background-color: #F0F0F0;
+    background-color: rgb(41, 41, 41);
+    color: rgb(156, 156, 156);
+    font-size: 14px;
 }
 
 td:first-child
@@ -23,4 +59,34 @@ td:first-child
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+
+#searchfield
+{
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid rgb(211, 102, 0);
+    height: 30px;
+    background-color: rgb(49, 8, 88);
+    color: white;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+#entry_list
+{
+    width: 100%;
+}
+
+.entry_item
+{
+    width: 100%;
+    margin: 3px auto;
+    overflow: hidden;
+    height: 20px;
+}
+
+.entry_item:hover
+{
+    background-color: rgb(29, 25, 34);
 }

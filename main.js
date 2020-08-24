@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, globalShortcut } = require('electron')
+const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron')
 const path = require('path')
 
 if (!app.requestSingleInstanceLock()) {
@@ -8,12 +8,32 @@ if (!app.requestSingleInstanceLock()) {
 
 let visor = {};
 
-function createWindow() {
+function createWindow(fixedPos) {
     // Create the browser window.
+
+    let p = screen.getCursorScreenPoint();
+    let myWidth  = 800;
+    let myHeight = 600;
+
+    if (fixedPos)
+    {
+        p = {};
+        p.x = screen.getPrimaryDisplay().size.width - myWidth - 50;
+        p.y = screen.getPrimaryDisplay().size.height - myHeight - 50;
+    }
+
+    if (visor.mainWindow)
+    {
+        visor.mainWindow.close();
+        visor.mainWindow = null;
+    }
+
     visor.mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        frame: true,
+        width: myWidth,
+        height: myHeight,
+        x: p.x,
+        y: p.y,
+        frame: false,
         resizable: true,
         //movable: false,
         minimizable: false,
@@ -21,8 +41,7 @@ function createWindow() {
         //closable: true,
         //show: false, OG
         //show: false,
-        title: 'clips',
-        //icon: path.join(__dirname, 'icons/16x16.png'),
+        title: 'ClipSyne',
         webPreferences: {
             nodeIntegration: true
         }
@@ -31,7 +50,7 @@ function createWindow() {
     visor.mainWindow.setIcon('./icon.png');
 
     //mainWindow.setMenuBarVisibility(false)
-    visor.mainWindow.setMenuBarVisibility(true);
+    visor.mainWindow.setMenuBarVisibility(false);
 
     // and load the index.html of the app.
     visor.mainWindow.loadFile('index.html');
@@ -44,7 +63,7 @@ function createWindow() {
     //     mainWindow.hide();
     // });
 
-    visor.mainWindow.on('close', (event) => {
+    visor.mainWindow.on('close', (ev) => {
         //mainWindow.reload();
         // if (!app.isQuiting) {
         //     event.preventDefault();
@@ -84,13 +103,19 @@ function switchKeyboard() {
 // Some APIs can only be used after this event occurs.
 //app.whenReady().then(start)
 
+
+
 app.on('ready', () => {
 
     globalShortcut.register('Ctrl+Shift+U', () => {
-        if (visor.mainWindow === null) {
-            createWindow();
-        }
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+
+        console.log(`visor.mainWindow: ${visor.mainWindow}`);
+        console.log(`BrowserWindow.getAllWindows().length: ${BrowserWindow.getAllWindows().length}`);
+        // if (visor.mainWindow === null) {
+        //     createWindow();
+        // }
+        // if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        createWindow(false);
     });
 
     visor.tray = new Tray("./icon.png");
@@ -103,7 +128,7 @@ app.on('ready', () => {
                 label: "Display",
                 click: (item, window, event) => {
                     //console.log(item, event);
-                    createWindow();
+                    createWindow(true);
                 }
             },
             {
