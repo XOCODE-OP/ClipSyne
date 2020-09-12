@@ -1,37 +1,45 @@
-/*
-JQUERY MISSING
-*/
-
-
 const { clipboard, remote } = require('electron');
 //const jquery = require('jquery');
-const dexie = require('dexie');
+const dexie = require('dexie'); //https://dexie.org/docs/ExportImport/dexie-export-import
 dexie.debug = true;
-const db = new dexie("history");
+const db = new dexie("clipsdb");
 
 var searchfield;
 var thisWindow;
 var rightMouseDown = false;
+var entry_list;
 
 document.addEventListener('DOMContentLoaded', (event) => {
     thisWindow =  remote.getCurrentWindow();
     searchfield = document.querySelector('#searchfield');
     searchfield.style.display = 'none';
+
+    entry_list = document.querySelector('#entry_list');
+
+    // searchfield.addEventListener('change', function(event)
+    // {
+    //     //event.target.value
+    //     refreshView();
+    // });
+
+    searchfield.addEventListener('keyup', function(event)
+    {
+        //event.target.value
+        refreshView();
+    });
 });
-
-
 
 setTimeout(function()
 {
     document.addEventListener('keyup', function(e)
     {
-        //focusable.push(input);
+        //focusable.push(searchfield);
     
         if (e.key === 'Enter')
         {
             
         } else if (e.key === 'Escape') {
-        //    input.value = ''
+        //    searchfield.value = ''
             thisWindow.close();
         } else
         { 
@@ -41,18 +49,12 @@ setTimeout(function()
             searchfield.focus();
         }
     });
-}
-, 300);
-
-// document.addEventListener('keydown', function(e) {
-//     thisWindow.setPosition(thisWindow.x, thisWindow.y - 10);
-// });
+}, 300);
 
 document.addEventListener("mouseup", function(e)
 {
     if (e.button == 2) {rightMouseDown = false;}
 });
-
 
 document.addEventListener("mousedown", function(e)
 {
@@ -69,7 +71,6 @@ document.addEventListener("mousemove", function(e)
     }
 });
 
-
 document.addEventListener("click", function()
 {
     //console.log("ble");
@@ -80,130 +81,129 @@ document.addEventListener("click", function()
 });
 
 
-/*
 
 
-const table = document.querySelector('table');
+// remote.getCurrentWindow().on('show', function() {
+//     searchfield.focus();
+// });
 
-remote.getCurrentWindow().on('show', function() {
-    input.focus();
-});
+document.body.addEventListener('keydown', function(e)
+{
+    // let focusable = Array.from(document.querySelectorAll("tr td:first-child"));
+    // let index = focusable.indexOf(document.activeElement);
 
-document.body.addEventListener('keydown', function(e) {
-    let focusable = Array.from(document.querySelectorAll("tr td:first-child"));
-
-    let index = focusable.indexOf(document.activeElement);
-
-    //focusable.push(input);
+    //focusable.push(searchfield);
 
     if (e.key === 'ArrowDown') {
-        let nextElement = focusable[index + 1] || focusable[0];
-        nextElement.focus();
+        // let nextElement = focusable[index + 1] || focusable[0];
+        // nextElement.focus();
     } else if (e.key === 'ArrowUp') {
-        let nextElement = focusable[index - 1] || focusable[focusable.length - 1];
-        nextElement.focus();
+        // let nextElement = focusable[index - 1] || focusable[focusable.length - 1];
+        // nextElement.focus();
     } else if (e.key === 'Enter') {
-        changeToSelected(e)
+        // changeToSelected(e)
     } else if (e.key === 'Escape') {
-        input.value = '';
-        refreshView();
-        remote.getCurrentWindow().close();
+        // searchfield.value = '';
+        // refreshView();
+        // remote.getCurrentWindow().close();
     } else {
-        input.focus();
-        refreshView();
+        // searchfield.focus();
+        // refreshView();
     }
 });
 
+
+
+/*
 table.addEventListener('click', changeToSelected);
 
 async function changeToSelected(e) {
     if (e.target.id) {
-        if (clipboard.readText() === (await db.history.get(parseInt(e.target.id))).text) {
+        if (clipboard.readText() === (await db.clips.get(parseInt(e.target.id))).content) {
             return;
         }
 
         if (e.target.tagName === 'TD') {
-            clipboard.writeText((await db.history.get(parseInt(e.target.id))).text);
+            clipboard.writeText((await db.clips.get(parseInt(e.target.id))).content);
         } else if (e.target.id && e.target.tagName === 'BUTTON') {
 
         }
 
-        await db.history.delete(parseInt(e.target.id));
+        await db.clips.delete(parseInt(e.target.id));
         refreshView();
     }
-
-    //db.history.keys((r) => {console.log(r)});
-
-    //console.log(e.target.id)
-    //console.log(e.target.tagName)
 }
 
-function refreshView() {
-    db.history.count((r) => {
-        document.querySelector('title').innerText = `history (${r})`;
-        input.placeholder = `search in ${r} clips`;
-    });
-    return db.history.limit(10).desc()
-        .filter((history) => {
-            return !input.value || history.text.toLowerCase().indexOf(input.value.toLowerCase()) !== -1;
-        })
-        .toArray()
-        .then((history) => {
-            table.innerHTML = '';
-            let tabindex = 0;
-            history.forEach((row) => {
-                const tr = document.createElement('tr');
-                tabindex++
-                tr.innerHTML = `<tr><td tabindex="${tabindex}" id="${row.id}"> </td><td><button id="${row.id}">&#10006;</button></td></tr>`;
-                //console.log(tr.querySelector('td'));
-                tr.querySelector('td').innerText = row.text.replace(/\n/g, ' ');
-                table.appendChild(tr);
+*/
+function refreshView()
+{
+    //return db.clips.limit(10)...
+    db.clips.limit(10).desc()
+    .filter(function(clips)
+    {
+        return !searchfield.value || clips.content.toLowerCase().indexOf(searchfield.value.toLowerCase()) !== -1;
+    }).toArray()
+    .then(function(clips)
+    {
+        entry_list.innerHTML = '';
+        clips.forEach(function(row)
+        {
+            const entrydiv = document.createElement('div');
+            entrydiv.classList.add("entry_item");
+            entrydiv.id = ""+row.id;
+            entrydiv.innerHTML = "";
+            entrydiv.innerText = row.content.replace(/\n/g, ' ');
+            entrydiv.addEventListener("click", function()
+            {
+                //clipboard.writeText((await db.clips.get(row.id)).content);
+                clipboard.writeText(row.content);
+                thisWindow.close();
             });
+            entry_list.appendChild(entrydiv);
         });
+    });
 }
 
-// const { ipcRenderer } = require('electron')
-    //console.log(ipcRenderer.send('asynchronous-message', 'ping')) // prints "pong"
 
-// ipcRenderer.on('asynchronous-message', (event, arg) => {
-//     console.log(arg) // prints "ping"
-//     setTimeout(() => ipcRenderer.send('asynchronous-message', 'ping'), 1000)
-// })
-// ipcRenderer.send('asynchronous-message', 'ping')
 
-setTimeout(async() => {
-    await db.version(1).stores({ history: "++id,text" });
+setTimeout(async function()
+{
+    await db.version(1).stores({ clips: "++id,content" }); //ini table
 
     refreshView();
 
-    let previousText = clipboard.readText();
+    let prevClipText = clipboard.readText();
 
-    // try {
-    //     previousText = (await db.history.last()).text;
-    // } catch (e) {
-    //     previousText = '';
-    //     //console.log(e);
-    // }
-    // console.log('previousText:' + previousText);
-
-    setInterval(async() => {
-        if (previousText !== clipboard.readText()) {
-            previousText = clipboard.readText();
-            //console.log('newText:' + previousText)
-            db.history.limit(10000).desc()
-                .filter((history) => {
-                    return history.text === previousText;
+    setInterval(async function()
+    {
+        if (prevClipText !== clipboard.readText())
+        {
+            prevClipText = clipboard.readText();
+            db.clips.limit(10000).desc()
+                .filter(function(clips)
+                {
+                    return clips.content === prevClipText;
                 })
                 .toArray()
-                .then((history) => {
-                    history.forEach((row) => {
-                        console.log(row.id);
-                        db.history.delete(row.id);
+                .then(function(clips)
+                {
+                    clips.forEach(function(row) 
+                    {
+                        db.clips.delete(row.id);
                     });
                 });
-            db.history.add({ text: previousText }).then(refreshView);
+            db.clips.add({ content: prevClipText }).then(refreshView);
         }
-    }, 100)
+    }, 100);
 });
 
-*/
+
+// var db = new Dexie("YOUR_DATABASE_NAME");
+// db.version(1).stores({
+//     TABLENAME: "++id,name,isCloseFriend",
+//     ANOTHER_TABLE_NAME: "++id,name,kind"
+// });
+// db.open();
+// db.TABLENAME.add({name: "Ingemar Bergman", isCloseFriend: 0});
+// db.ANOTHER_TABLE_NAME.add({name: "Josephina", kind: "dog", fur: "too long right now"});
+//let some = (await db.tablename.get(INDEX).fieldname)
