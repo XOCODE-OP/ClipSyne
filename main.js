@@ -12,14 +12,33 @@ function createWindow(fixedPos) {
     // Create the browser window.
 
     let p = screen.getCursorScreenPoint();
-    let myWidth  = 800;
-    let myHeight = 600;
+    let myWidth  = 400;
+    let myHeight = 500;
 
     if (fixedPos)
     {
         p = {};
-        p.x = screen.getPrimaryDisplay().size.width - myWidth - 50;
-        p.y = screen.getPrimaryDisplay().size.height - myHeight - 50;
+        p.x = screen.getPrimaryDisplay().size.width - myWidth - 40;
+        p.y = screen.getPrimaryDisplay().size.height - myHeight - 40;
+    }
+    else
+    {
+        if ((p.y + myHeight) > screen.getPrimaryDisplay().size.height)
+        {
+            p.y = screen.getPrimaryDisplay().size.height - myHeight - 30;
+        }
+        if (p.y < 0)
+        {
+            p.y = 0;
+        }
+        if ((p.x + myWidth) > screen.getPrimaryDisplay().size.width)
+        {
+            p.x = screen.getPrimaryDisplay().size.width - myWidth;
+        }
+        if (p.x < 0)
+        {
+            p.x = 0;
+        }
     }
 
     if (visor.mainWindow)

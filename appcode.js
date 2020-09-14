@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
         //event.target.value
         refreshView();
     });
+
+    console.log(remote.app.getPath('userData'));
 });
 
 setTimeout(function()
