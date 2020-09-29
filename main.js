@@ -1,12 +1,24 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron')
-const path = require('path')
+const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron');
+const path = require('path');
+const shortcutPopupStr = "Ctrl+Shift+U";
+let visor = {};
+
+console.log("CLIPSYNC 1.0");
+console.log("Use", shortcutPopupStr, "to open.");
 
 if (!app.requestSingleInstanceLock()) {
     app.quit();
 }
 
-let visor = {};
+app.on('browser-window-blur', function(event, win)
+{
+    visor.mainWindow.close();
+});
+// visor.mainWindow.on('blur', (ev) => {
+//     visor.mainWindow.close();
+// });
+//       BOTH OF THESE WORK
 
 function createWindow(fixedPos) {
     // Create the browser window.
@@ -82,7 +94,7 @@ function createWindow(fixedPos) {
     //     mainWindow.hide();
     // });
 
-    visor.mainWindow.on('close', (ev) => {
+    visor.mainWindow.on('close', function(ev) {
         //mainWindow.reload();
         // if (!app.isQuiting) {
         //     event.preventDefault();
@@ -94,6 +106,9 @@ function createWindow(fixedPos) {
         ev.sender.hide();
         ev.preventDefault(); // prevent quit process
     });
+
+    
+
 
     // globalShortcut.register('CommandOrControl+X', () => {
     //     console.log("shortcut");
@@ -107,27 +122,20 @@ function createWindow(fixedPos) {
     //setTimeout(() => mainWindow.send('asynchronous-message', clipboard.readText()), 1000)
 }
 
-function switchKeyboard() {
-    let selection = clipboard.readText('selection');
-    console.log(selection);
+// function switchKeyboard() {
+//     let selection = clipboard.readText('selection');
+//     console.log(selection);
 
-    clipboard.writeText('111', 'selection');
+//     clipboard.writeText('111', 'selection');
 
-    selection = clipboard.readText('selection');
-    console.log(selection);
-}
+//     selection = clipboard.readText('selection');
+//     console.log(selection);
+// }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-//app.whenReady().then(start)
-
-
-
-app.on('ready', () => {
-
-    globalShortcut.register('Ctrl+Shift+U', () => {
-
+app.on('ready', function()
+{
+    globalShortcut.register(shortcutPopupStr, function()
+    {
         console.log(`visor.mainWindow: ${visor.mainWindow}`);
         console.log(`BrowserWindow.getAllWindows().length: ${BrowserWindow.getAllWindows().length}`);
         // if (visor.mainWindow === null) {
@@ -140,13 +148,11 @@ app.on('ready', () => {
     visor.tray = new Tray("./icon.png");
     visor.tray.setToolTip('Click to show your clipboard history');
 
-    // const
-
     const contextMenu = Menu.buildFromTemplate(
         [   {
                 label: "Display",
-                click: (item, window, event) => {
-                    //console.log(item, event);
+                click: function(item, window, event)
+                {
                     createWindow(true);
                 }
             },
@@ -162,43 +168,44 @@ app.on('ready', () => {
     //let contextMenu = Menu.buildFromTemplate(template);
     visor.tray.setContextMenu(contextMenu);
     //visor.tray.setImage('./icon.png');
-
 });
 
 // do not quit when all windows are closed
-// and continue running on background to listen
-// for shortcuts
-app.on('window-all-closed', (e) => {
+// and continue running on background to listen for shortcuts
+app.on('window-all-closed', function(e)
+{
     e.preventDefault();
     e.returnValue = false;
 });
 
-app.on('will-quit', () => {
+app.on('will-quit', function()
+{
     // Unregister a shortcut.
-    globalShortcut.unregister('Ctrl+Shift+U');
+    globalShortcut.unregister(shortcutPopupStr);
     // Unregister all shortcuts.
     globalShortcut.unregisterAll();
-  })
+});
 
-// // Quit when all windows are closed.
+// we explicitely dont want this behavior for this project. Should be running and hidden usually.
 // app.on('window-all-closed', () => {
-//     // On macOS it is common for applications and their menu bar
-//     // to stay active until the user quits explicitly with Cmd + Q
+     // On macOS it is common for applications and their menu bar
+     // to stay active until the user quits explicitly with Cmd + Q
 //     if (process.platform !== 'darwin') app.quit();
 // })
 
-
-
-app.on('activate', () => {
+app.on('activate', function()
+{
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (visor.mainWindow === null) {
+    if (visor.mainWindow === null)
+    {
         createWindow();
     }
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-app.on("before-quit", ev => {
+app.on("before-quit", function(ev)
+{
     // BrowserWindow "close" event spawn after quit operation,
     // it requires to clean up listeners for "close" event
     visor.window.removeAllListeners("close");

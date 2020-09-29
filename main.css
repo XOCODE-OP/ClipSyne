@@ -67,12 +67,17 @@ td:first-child
 {
     width: 100%;
     border: 0;
-    border-bottom: 1px solid rgb(211, 102, 0);
+    border-bottom: 1px solid rgb(202, 202, 202);
     height: 30px;
-    background-color: rgb(49, 8, 88);
+    background-color: rgb(22, 22, 22);
     color: white;
     box-shadow: none;
     text-shadow: none;
+}
+
+#searchfield:active
+{
+    border-bottom: 1px solid red;
 }
 
 #entry_list

@@ -9,12 +9,35 @@ var thisWindow;
 var rightMouseDown = false;
 var entry_list;
 
-document.addEventListener('DOMContentLoaded', (event) => {
+let keyCTRL = false;
+let keySHIFT = false;
+
+let highlighted_id = -1;
+
+document.addEventListener('DOMContentLoaded', function(event)
+{
     thisWindow =  remote.getCurrentWindow();
     searchfield = document.querySelector('#searchfield');
     searchfield.style.display = 'none';
 
     entry_list = document.querySelector('#entry_list');
+
+    entry_list.addEventListener("mousemove", function(e)
+    {
+        let entries = document.querySelector(".entry_item");
+        for (let i = 0; i < entries.length; i++)
+        {
+            const e = entries[i];
+            if (e.id == highlighted_id)
+            {
+                this.style.backgroundColor = "rgb(29, 25, 34)";
+            }
+            else
+            {
+                this.style.backgroundColor = "transparent";
+            }
+        }
+    });
 
     // searchfield.addEventListener('change', function(event)
     // {
@@ -31,19 +54,58 @@ document.addEventListener('DOMContentLoaded', (event) => {
     console.log(remote.app.getPath('userData'));
 });
 
+document.addEventListener('blur', function(e)
+{
+    thisWindow.close();
+});
+
 setTimeout(function()
 {
+    document.addEventListener('keydown', function(e)
+    {
+        if (e.key === 'Control')
+        {
+            keyCTRL = true;    
+        }
+        if (e.key === 'Shift')
+        {
+            keySHIFT = true;    
+        }
+    });
     document.addEventListener('keyup', function(e)
     {
         //focusable.push(searchfield);
-    
         if (e.key === 'Enter')
         {
             
-        } else if (e.key === 'Escape') {
-        //    searchfield.value = ''
+        }
+        else if (e.key === 'Control')
+        {
+            keyCTRL = false;    
+        }
+        else if (e.key === 'Shift')
+        {
+            keySHIFT = false;    
+        }
+        else if (e.key === 'Delete' || e.key === 'Backspace')
+        {
+            if (keySHIFT && keyCTRL && highlighted_id > -1)
+            {
+                db.clips.delete(highlighted_id);
+                console.log("killed", highlighted_id);
+                highlighted_id = -1;
+                refreshView();
+            }
+        }
+        else if (e.key === 'Escape')
+        {
             thisWindow.close();
-        } else
+        }
+        else if (e.key === 'k')
+        {
+            //delete
+        }
+        else
         { 
             //this trigger auto when summoning the app via global shortcut
             //because of this we do the timeout
@@ -57,12 +119,10 @@ document.addEventListener("mouseup", function(e)
 {
     if (e.button == 2) {rightMouseDown = false;}
 });
-
 document.addEventListener("mousedown", function(e)
 {
     if (e.button == 2) {rightMouseDown = true;}
 });
-
 document.addEventListener("mousemove", function(e)
 {
     if (rightMouseDown)
@@ -72,18 +132,6 @@ document.addEventListener("mousemove", function(e)
         thisWindow.setPosition(_x, _y, 0);
     }
 });
-
-document.addEventListener("click", function()
-{
-    //console.log("ble");
-    
-
-    console.log(thisWindow);
-    thisWindow.setPosition(thisWindow.x - 10, thisWindow.y, 0);
-});
-
-
-
 
 // remote.getCurrentWindow().on('show', function() {
 //     searchfield.focus();
@@ -140,7 +188,7 @@ async function changeToSelected(e) {
 function refreshView()
 {
     //return db.clips.limit(10)...
-    db.clips.limit(10).desc()
+    db.clips.limit(20).desc()
     .filter(function(clips)
     {
         return !searchfield.value || clips.content.toLowerCase().indexOf(searchfield.value.toLowerCase()) !== -1;
@@ -155,16 +203,32 @@ function refreshView()
             entrydiv.id = ""+row.id;
             entrydiv.innerHTML = "";
             entrydiv.innerText = row.content.replace(/\n/g, ' ');
-            entrydiv.addEventListener("click", function()
+            entrydiv.addEventListener("click", function(e)
             {
                 //clipboard.writeText((await db.clips.get(row.id)).content);
                 clipboard.writeText(row.content);
                 thisWindow.close();
             });
+            entrydiv.addEventListener("mouseenter", function(e)
+            {
+                //console.log("entry", row.id);
+                //this.style.backgroundColor = "rgb(29, 25, 34)";
+                highlighted_id = row.id;
+            });
+            entrydiv.addEventListener("mouseleave", function(e)
+            {
+                //console.log("entry", row.id);
+                //this.style.backgroundColor = "transparent";
+            });
             entry_list.appendChild(entrydiv);
         });
     });
 }
+
+/* .entry_item:hover
+{
+    background-color: rgb(29, 25, 34);
+} */
 
 
 
