@@ -88,10 +88,11 @@ td:first-child
 
 .entry_item
 {
+    padding: 5px;
     padding-left: 6px;
     padding-right: 6px;
     width: calc(100% - 6px - 6px);
-    margin: 5px auto;
+    margin: auto;
     overflow: hidden;
     height: 20px;
     cursor: pointer;
@@ -100,4 +101,4 @@ td:first-child
 .entry_item:hover
 {
     background-color: rgb(29, 25, 34);
-}
+} 

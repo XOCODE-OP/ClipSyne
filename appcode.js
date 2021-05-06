@@ -22,23 +22,6 @@ document.addEventListener('DOMContentLoaded', function(event)
 
     entry_list = document.querySelector('#entry_list');
 
-    entry_list.addEventListener("mousemove", function(e)
-    {
-        let entries = document.querySelector(".entry_item");
-        for (let i = 0; i < entries.length; i++)
-        {
-            const e = entries[i];
-            if (e.id == highlighted_id)
-            {
-                this.style.backgroundColor = "rgb(29, 25, 34)";
-            }
-            else
-            {
-                this.style.backgroundColor = "transparent";
-            }
-        }
-    });
-
     // searchfield.addEventListener('change', function(event)
     // {
     //     //event.target.value
@@ -52,6 +35,8 @@ document.addEventListener('DOMContentLoaded', function(event)
     });
 
     console.log(remote.app.getPath('userData'));
+    
+
 });
 
 document.addEventListener('blur', function(e)
@@ -87,19 +72,31 @@ setTimeout(function()
         {
             keySHIFT = false;    
         }
+        else if (e.key === 'ArrowUp')
+        {
+            highlighted_id++;
+            //if (highlighted_id > )
+            refreshView();
+        }
+        else if (e.key === 'ArrowDown')
+        {
+            highlighted_id--;
+            if (highlighted_id < 0) highlighted_id = 0;
+            refreshView();
+        }
         else if (e.key === 'Delete' || e.key === 'Backspace')
         {
             if (keySHIFT && keyCTRL && highlighted_id > -1)
             {
                 db.clips.delete(highlighted_id);
-                console.log("killed", highlighted_id);
+                // console.log("killed", highlighted_id);
                 highlighted_id = -1;
                 refreshView();
             }
         }
         else if (e.key === 'Escape')
         {
-            thisWindow.close();
+            thisWindow.hide();
         }
         else if (e.key === 'k')
         {
@@ -202,7 +199,9 @@ function refreshView()
             entrydiv.classList.add("entry_item");
             entrydiv.id = ""+row.id;
             entrydiv.innerHTML = "";
-            entrydiv.innerText = row.content.replace(/\n/g, ' ');
+            entrydiv.innerText = "(" + row.id + ") " + row.content.replace(/\n/g, ' ');
+            if (highlighted_id == row.id) entrydiv.style.backgroundColor = "blue";
+            
             entrydiv.addEventListener("click", function(e)
             {
                 //clipboard.writeText((await db.clips.get(row.id)).content);
@@ -236,6 +235,9 @@ setTimeout(async function()
 {
     await db.version(1).stores({ clips: "++id,content" }); //ini table
 
+    highlighted_id = 250;
+    console.log(highlighted_id);
+
     refreshView();
 
     let prevClipText = clipboard.readText();
@@ -261,6 +263,8 @@ setTimeout(async function()
             db.clips.add({ content: prevClipText }).then(refreshView);
         }
     }, 100);
+
+    
 });
 
 

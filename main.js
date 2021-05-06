@@ -4,7 +4,7 @@ const path = require('path');
 const shortcutPopupStr = "Ctrl+Shift+U";
 let visor = {};
 
-console.log("CLIPSYNC 1.0");
+console.log("CLIPSYNC 1.74");
 console.log("Use", shortcutPopupStr, "to open.");
 
 if (!app.requestSingleInstanceLock()) {
@@ -53,11 +53,11 @@ function createWindow(fixedPos) {
         }
     }
 
-    if (visor.mainWindow)
-    {
-        visor.mainWindow.close();
-        visor.mainWindow = null;
-    }
+    // if (visor.mainWindow)
+    // {
+    //     visor.mainWindow.close();
+    //     visor.mainWindow = null;
+    // }
 
     visor.mainWindow = new BrowserWindow({
         width: myWidth,
@@ -74,9 +74,12 @@ function createWindow(fixedPos) {
         //show: false,
         title: 'ClipSyne',
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            contextIsolation: false,
+            enableRemoteModule: true
         }
     });
+    console.log("init browser window, visor: " + visor.mainWindow);
 
     visor.mainWindow.setIcon('./icon.png');
 
@@ -134,6 +137,7 @@ function createWindow(fixedPos) {
 
 app.on('ready', function()
 {
+    console.log("app ready");
     globalShortcut.register(shortcutPopupStr, function()
     {
         console.log(`visor.mainWindow: ${visor.mainWindow}`);
@@ -142,7 +146,10 @@ app.on('ready', function()
         //     createWindow();
         // }
         // if (BrowserWindow.getAllWindows().length === 0) createWindow();
-        createWindow(false);
+        if (!visor.mainWindow)
+            createWindow(false);
+        else
+            visor.mainWindow.show();
     });
 
     visor.tray = new Tray("./icon.png");
@@ -197,6 +204,7 @@ app.on('activate', function()
 {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
+    console.log("activate");
     if (visor.mainWindow === null)
     {
         createWindow();
