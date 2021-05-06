@@ -97,8 +97,3 @@ td:first-child
     height: 20px;
     cursor: pointer;
 }
-
-.entry_item:hover
-{
-    background-color: rgb(29, 25, 34);
-} 

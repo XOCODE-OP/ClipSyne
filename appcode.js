@@ -1,18 +1,29 @@
+'use strict';
+'esversion: 8';
+// jshint node: true
+// jshint trailingcomma: false
+// jshint undef:true
+// jshint unused:true
+// jshint varstmt:true
+// jshint browser: true
+
 const { clipboard, remote } = require('electron');
 //const jquery = require('jquery');
 const dexie = require('dexie'); //https://dexie.org/docs/ExportImport/dexie-export-import
 dexie.debug = true;
 const db = new dexie("clipsdb");
 
-var searchfield;
-var thisWindow;
-var rightMouseDown = false;
-var entry_list;
+let searchfield;
+let thisWindow;
+let rightMouseDown = false;
+let entry_list;
 
 let keyCTRL = false;
 let keySHIFT = false;
 
 let highlighted_id = -1;
+
+let selectColor = "rgb(29, 25, 34)";
 
 document.addEventListener('DOMContentLoaded', function(event)
 {
@@ -36,15 +47,27 @@ document.addEventListener('DOMContentLoaded', function(event)
 
     console.log(remote.app.getPath('userData'));
     
+    setTimeout(function()
+    {
+        setupKeyboardEvents();
+        window.focus();
+    }, 300);
+    window.focus();
+});
 
+document.addEventListener('focus', function(e)
+{
+    console.log("FOCUS INSIDE");
+    alert("focus inside");
+    refreshView();
 });
 
 document.addEventListener('blur', function(e)
 {
-    thisWindow.close();
+    thisWindow.hide();
 });
 
-setTimeout(function()
+function setupKeyboardEvents()
 {
     document.addEventListener('keydown', function(e)
     {
@@ -76,13 +99,17 @@ setTimeout(function()
         {
             highlighted_id++;
             //if (highlighted_id > )
-            refreshView();
+            // refreshView();
+            recolorSelection();
+            console.log("ArrowUp", highlighted_id);
         }
         else if (e.key === 'ArrowDown')
         {
             highlighted_id--;
             if (highlighted_id < 0) highlighted_id = 0;
-            refreshView();
+            // refreshView();
+            recolorSelection();
+            console.log("ArrowDown", highlighted_id);
         }
         else if (e.key === 'Delete' || e.key === 'Backspace')
         {
@@ -92,6 +119,7 @@ setTimeout(function()
                 // console.log("killed", highlighted_id);
                 highlighted_id = -1;
                 refreshView();
+                recolorSelection();
             }
         }
         else if (e.key === 'Escape')
@@ -110,7 +138,7 @@ setTimeout(function()
             searchfield.focus();
         }
     });
-}, 300);
+}
 
 document.addEventListener("mouseup", function(e)
 {
@@ -182,8 +210,21 @@ async function changeToSelected(e) {
 }
 
 */
+
+function recolorSelection()
+{
+    let all = document.getElementsByClassName("entry_item");
+    console.log(all);
+    for (let i = 0; i < all.length; i++)
+    {
+        all[i].style.backgroundColor = "transparent";
+        if (parseInt(all[i].id) == highlighted_id) all[i].style.backgroundColor = selectColor;
+    }
+}
+
 function refreshView()
 {
+
     //return db.clips.limit(10)...
     db.clips.limit(20).desc()
     .filter(function(clips)
@@ -200,7 +241,6 @@ function refreshView()
             entrydiv.id = ""+row.id;
             entrydiv.innerHTML = "";
             entrydiv.innerText = "(" + row.id + ") " + row.content.replace(/\n/g, ' ');
-            if (highlighted_id == row.id) entrydiv.style.backgroundColor = "blue";
             
             entrydiv.addEventListener("click", function(e)
             {
@@ -210,14 +250,16 @@ function refreshView()
             });
             entrydiv.addEventListener("mouseenter", function(e)
             {
-                //console.log("entry", row.id);
+                console.log("mouseenter ", row.id);
                 //this.style.backgroundColor = "rgb(29, 25, 34)";
                 highlighted_id = row.id;
+                recolorSelection();
             });
             entrydiv.addEventListener("mouseleave", function(e)
             {
                 //console.log("entry", row.id);
                 //this.style.backgroundColor = "transparent";
+                recolorSelection();
             });
             entry_list.appendChild(entrydiv);
         });

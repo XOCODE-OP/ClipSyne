@@ -1,8 +1,17 @@
+'use strict';
+'esversion: 8';
+// jshint node: true
+// jshint trailingcomma: false
+// jshint undef:true
+// jshint unused:true
+// jshint varstmt:true
+
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron');
-const path = require('path');
+// const path = require('path');
 const shortcutPopupStr = "Ctrl+Shift+U";
 let visor = {};
+const DEBUG = false;
 
 console.log("CLIPSYNC 1.74");
 console.log("Use", shortcutPopupStr, "to open.");
@@ -25,6 +34,7 @@ function createWindow(fixedPos) {
 
     let p = screen.getCursorScreenPoint();
     let myWidth  = 400;
+    if (DEBUG)  myWidth *= 2;
     let myHeight = 500;
 
     if (fixedPos)
@@ -59,6 +69,7 @@ function createWindow(fixedPos) {
     //     visor.mainWindow = null;
     // }
 
+
     visor.mainWindow = new BrowserWindow({
         width: myWidth,
         height: myHeight,
@@ -78,7 +89,13 @@ function createWindow(fixedPos) {
             contextIsolation: false,
             enableRemoteModule: true
         }
-    });
+    }); 
+    
+    if (DEBUG)
+    {
+        visor.mainWindow.webContents.openDevTools({detach: true});
+    }
+
     console.log("init browser window, visor: " + visor.mainWindow);
 
     visor.mainWindow.setIcon('./icon.png');
@@ -134,6 +151,23 @@ function createWindow(fixedPos) {
 //     selection = clipboard.readText('selection');
 //     console.log(selection);
 // }
+
+app.on('browser-window-focus', function(event, win)
+{
+    console.log('FOCUS', win.webContents.id);
+});
+
+app.on('browser-window-blur', function(event, win)
+{
+    if (win.webContents.isDevToolsFocused())
+    {
+        console.log('Ignore this case');
+    }
+    else
+    {
+        console.log('browser-window-blur', win.webContents.id);
+    }
+});
 
 app.on('ready', function()
 {
