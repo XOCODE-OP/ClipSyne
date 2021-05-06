@@ -96,7 +96,7 @@ function createWindow(fixedPos) {
         visor.mainWindow.webContents.openDevTools({detach: true});
     }
 
-    console.log("init browser window, visor: " + visor.mainWindow);
+    console.log("creating browser window");
 
     visor.mainWindow.setIcon('./icon.png');
 
@@ -176,8 +176,8 @@ app.on('ready', function()
     console.log("app ready");
     globalShortcut.register(shortcutPopupStr, function()
     {
-        console.log(`visor.mainWindow: ${visor.mainWindow}`);
-        console.log(`BrowserWindow.getAllWindows().length: ${BrowserWindow.getAllWindows().length}`);
+        //console.log(`visor.mainWindow: ${visor.mainWindow}`);
+        //console.log(`BrowserWindow.getAllWindows().length: ${BrowserWindow.getAllWindows().length}`);
         // if (visor.mainWindow === null) {
         //     createWindow();
         // }

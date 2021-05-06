@@ -8,7 +8,9 @@
 // jshint browser: true
 
 const { clipboard, remote, ipcRenderer } = require('electron');
-//const jquery = require('jquery');
+const sqlite3 = require('sqlite3').verbose();
+const dblite = new sqlite3.Database('./clipsdatabase.s3db');
+
 const dexie = require('dexie'); //https://dexie.org/docs/ExportImport/dexie-export-import
 dexie.debug = true;
 const db = new dexie("clipsdb");
@@ -17,12 +19,9 @@ let searchfield;
 let thisWindow;
 let rightMouseDown = false;
 let entry_list;
-
 let keyCTRL = false;
 let keySHIFT = false;
-
 let highlighted_id = -1;
-
 let selectColor = "rgb(29, 25, 34)";
 
 
@@ -36,6 +35,27 @@ document.addEventListener('DOMContentLoaded', function(event)
         refreshView();
         recolorSelection();
     });
+
+    function sq3test()
+    {
+        let _query = `SELECT * FROM clips`;
+        dblite.each(_query, [], function(err, row)
+        {
+            if (err) throw err;
+            console.log(`DATA: ${row.id} ${row.content}`);
+        });
+
+        _query = `SELECT * FROM clips WHERE id = 1`;
+        dblite.each(_query, [], function(err, row)
+        {
+            if (err) throw err;
+            console.log(`DATA: ${row.id} ${row.content}`);
+        });
+
+        dblite.close();
+    }
+    sq3test();
+    
 
     thisWindow =  remote.getCurrentWindow();
     searchfield = document.querySelector('#searchfield');
@@ -55,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function(event)
         refreshView();
     });
 
-    console.log(remote.app.getPath('userData'));
+    //console.log(remote.app.getPath('userData'));
     
     setTimeout(function()
     {
@@ -63,13 +83,6 @@ document.addEventListener('DOMContentLoaded', function(event)
         window.focus();
     }, 300);
     window.focus();
-});
-
-document.addEventListener('focus', function(e)
-{
-    console.log("FOCUS INSIDE");
-    alert("focus inside");
-    refreshView();
 });
 
 document.addEventListener('blur', function(e)
@@ -135,10 +148,6 @@ function setupKeyboardEvents()
         else if (e.key === 'Escape')
         {
             thisWindow.hide();
-        }
-        else if (e.key === 'k')
-        {
-            //delete
         }
         else
         { 
@@ -287,7 +296,7 @@ setTimeout(async function()
     await db.version(1).stores({ clips: "++id,content" }); //ini table
 
     highlighted_id = 250;
-    console.log(highlighted_id);
+    //console.log(highlighted_id);
 
     refreshView();
 
