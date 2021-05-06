@@ -155,6 +155,8 @@ function createWindow(fixedPos) {
 app.on('browser-window-focus', function(event, win)
 {
     console.log('FOCUS', win.webContents.id);
+
+    win.webContents.send('focusmsg', 'this is a message from main to render');
 });
 
 app.on('browser-window-blur', function(event, win)
@@ -255,7 +257,18 @@ app.on("before-quit", function(ev)
     visor = null;
 });
 
-/*ipcMain.on('asynchronous-message', (event, arg) => {
-    console.log(arg) // prints "ping"
-    setTimeout(() => event.reply('asynchronous-message', clipboard.readText()), 1000)
-})*/
+function ipcTest()
+{
+    ipcMain.on('asynchronous-message', function (event, arg)
+    {
+        console.log("Incoming async msg from render to main: ", arg);
+        event.reply('asynchronous-reply', 'reply from main (async)');
+    });
+    
+    ipcMain.on('synchronous-message', function(event, arg)
+    {
+        console.log("Incoming sync msg from render to main: ", arg);
+        event.returnValue = 'Reply from main (sync)';
+    });
+}
+

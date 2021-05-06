@@ -7,7 +7,7 @@
 // jshint varstmt:true
 // jshint browser: true
 
-const { clipboard, remote } = require('electron');
+const { clipboard, remote, ipcRenderer } = require('electron');
 //const jquery = require('jquery');
 const dexie = require('dexie'); //https://dexie.org/docs/ExportImport/dexie-export-import
 dexie.debug = true;
@@ -25,8 +25,18 @@ let highlighted_id = -1;
 
 let selectColor = "rgb(29, 25, 34)";
 
+
+
+
 document.addEventListener('DOMContentLoaded', function(event)
 {
+    ipcRenderer.on('focusmsg', function(event, message)
+    {
+        //console.log("Incoming msg from main to render: ", message);
+        refreshView();
+        recolorSelection();
+    });
+
     thisWindow =  remote.getCurrentWindow();
     searchfield = document.querySelector('#searchfield');
     searchfield.style.display = 'none';
@@ -214,7 +224,6 @@ async function changeToSelected(e) {
 function recolorSelection()
 {
     let all = document.getElementsByClassName("entry_item");
-    console.log(all);
     for (let i = 0; i < all.length; i++)
     {
         all[i].style.backgroundColor = "transparent";
@@ -250,7 +259,7 @@ function refreshView()
             });
             entrydiv.addEventListener("mouseenter", function(e)
             {
-                console.log("mouseenter ", row.id);
+                //console.log("mouseenter ", row.id);
                 //this.style.backgroundColor = "rgb(29, 25, 34)";
                 highlighted_id = row.id;
                 recolorSelection();
@@ -309,6 +318,17 @@ setTimeout(async function()
     
 });
 
+function ipcTest()
+{
+    ipcRenderer.on('asynchronous-reply', function(event, arg)
+    {
+        console.log("Incoming async msg from MAIN to render: ", arg);
+    });
+    let ipcResponse = ipcRenderer.sendSync('synchronous-message', 'this is a sync msg from the render');
+    console.log(ipcResponse);
+    ipcResponse = ipcRenderer.send('asynchronous-message', 'async msg from render');
+    console.log(ipcResponse);
+}
 
 // var db = new Dexie("YOUR_DATABASE_NAME");
 // db.version(1).stores({
