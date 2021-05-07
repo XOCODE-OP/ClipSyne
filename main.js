@@ -6,10 +6,8 @@
 // jshint unused:true
 // jshint varstmt:true
 
-// Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron');
-// const path = require('path');
-const shortcutPopupStr = "Ctrl+Shift+U";
+const shortcutPopupStr = "Ctrl+Shift+Insert";
 let visor = {};
 const DEBUG = false;
 
@@ -24,10 +22,6 @@ app.on('browser-window-blur', function(event, win)
 {
     visor.mainWindow.close();
 });
-// visor.mainWindow.on('blur', (ev) => {
-//     visor.mainWindow.close();
-// });
-//       BOTH OF THESE WORK
 
 function createWindow(fixedPos) {
     // Create the browser window.
@@ -62,13 +56,6 @@ function createWindow(fixedPos) {
             p.x = 0;
         }
     }
-
-    // if (visor.mainWindow)
-    // {
-    //     visor.mainWindow.close();
-    //     visor.mainWindow = null;
-    // }
-
 
     visor.mainWindow = new BrowserWindow({
         width: myWidth,
@@ -156,7 +143,9 @@ app.on('browser-window-focus', function(event, win)
 {
     console.log('FOCUS', win.webContents.id);
 
-    win.webContents.send('focusmsg', 'this is a message from main to render');
+    let p = screen.getCursorScreenPoint();
+    win.webContents.send('focusmsg', p);
+    visor.mainWindow.setPosition(p.x, p.y);
 });
 
 app.on('browser-window-blur', function(event, win)
@@ -167,7 +156,7 @@ app.on('browser-window-blur', function(event, win)
     }
     else
     {
-        console.log('browser-window-blur', win.webContents.id);
+        //console.log('browser-window-blur', win.webContents.id);
     }
 });
 
