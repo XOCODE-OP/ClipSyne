@@ -141,7 +141,7 @@ function createWindow(fixedPos) {
 
 app.on('browser-window-focus', function(event, win)
 {
-    console.log('FOCUS', win.webContents.id);
+    // console.log('FOCUS', win.webContents.id);
 
     let p = screen.getCursorScreenPoint();
     win.webContents.send('focusmsg', p);
