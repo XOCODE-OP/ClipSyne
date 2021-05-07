@@ -166,7 +166,6 @@ function setupKeyboardEvents()
 
             setSelecteditemPerUIID();
             recolorSelection();
-            console.log("DOWN");
         }
         else if (e.key === 'Delete' || e.key === 'Backspace')
         {
@@ -229,7 +228,6 @@ document.addEventListener("mousemove", function(e)
 
 function recolorSelection()
 {
-    console.log("recolor");
     let all = document.getElementsByClassName("entry_item");
     for (let i = 0; i < all.length; i++)
     {
