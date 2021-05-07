@@ -221,13 +221,6 @@ app.on('window-all-closed', function(e)
     e.returnValue = false;
 });
 
-app.on('will-quit', function()
-{
-    // Unregister a shortcut.
-    globalShortcut.unregister(shortcutPopupStr);
-    // Unregister all shortcuts.
-    globalShortcut.unregisterAll();
-});
 
 // we explicitely dont want this behavior for this project. Should be running and hidden usually.
 // app.on('window-all-closed', () => {
@@ -250,11 +243,21 @@ app.on('activate', function()
 
 app.on("before-quit", function(ev)
 {
-    // BrowserWindow "close" event spawn after quit operation,
-    // it requires to clean up listeners for "close" event
-    visor.window.removeAllListeners("close");
-    // release windows
+    console.log("CLOSING CLIPSYNE");
+
+    visor.mainWindow.webContents.send('dbclose', 'closeit');
+
+    // Unregister a shortcut.
+    globalShortcut.unregister(shortcutPopupStr);
+    // Unregister all shortcuts.
+    globalShortcut.unregisterAll();
+
+
+    visor.mainWindow.removeAllListeners("close");
+    visor.mainWindow.destroy();
+    visor.mainWindow = null;
     visor = null;
+
 });
 
 function ipcTest()

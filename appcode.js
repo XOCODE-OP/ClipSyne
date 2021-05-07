@@ -25,37 +25,24 @@ let highlighted_id = -1;
 let selectColor = "rgb(29, 25, 34)";
 
 
+ipcRenderer.on('focusmsg', function(event, message)
+{
+    //console.log("Incoming msg from main to render: ", message);
+    refreshView();
+    recolorSelection();
+});
 
+ipcRenderer.on('dbclose', function(event, message)
+{
+    dblite.close();
+});
 
 document.addEventListener('DOMContentLoaded', function(event)
 {
-    ipcRenderer.on('focusmsg', function(event, message)
-    {
-        //console.log("Incoming msg from main to render: ", message);
-        refreshView();
-        recolorSelection();
-    });
-
-    function sq3test()
-    {
-        let _query = `SELECT * FROM clips`;
-        dblite.each(_query, [], function(err, row)
-        {
-            if (err) throw err;
-            console.log(`DATA: ${row.id} ${row.content}`);
-        });
-
-        _query = `SELECT * FROM clips WHERE id = 1`;
-        dblite.each(_query, [], function(err, row)
-        {
-            if (err) throw err;
-            console.log(`DATA: ${row.id} ${row.content}`);
-        });
-
-        dblite.close();
-    }
-    sq3test();
     
+
+    getAllClips(20);
+    findClips("test");
 
     thisWindow =  remote.getCurrentWindow();
     searchfield = document.querySelector('#searchfield');
@@ -84,6 +71,57 @@ document.addEventListener('DOMContentLoaded', function(event)
     }, 300);
     window.focus();
 });
+
+function addClip(_content)
+{
+    let _query = `INSERT INTO clips(id, content) VALUES(NULL, ?)`;
+    dblite.run(_query, [_content], function(err)
+    {
+        if (err) return console.log(err.message);
+        console.log(`A row has been inserted with row id ${this.lastID}`);
+    });
+}
+
+function findClips(_search)
+{
+    let _query = `SELECT * FROM clips WHERE content LIKE ?`;
+    dblite.each(_query, ['%' + _search + '%'], function(err, row)
+    {
+        if (err) throw err;
+        console.log(`FIND CLIPS: ${row.id} ${row.content}`);
+    });
+}
+
+function getClip(_id)
+{
+    let _query = `SELECT * FROM clips WHERE id = ?`;
+    dblite.each(_query, [_id], function(err, row)
+    {
+        if (err) throw err;
+        console.log(`GET CLIP: ${row.id} ${row.content}`);
+    });
+}
+
+function getAllClips(_limit)
+{
+    let _query = `SELECT * FROM clips LIMIT ?`;
+    dblite.each(_query, [_limit], function(err, row)
+    {
+        if (err) throw err;
+        console.log(`ALL: ${row.id} ${row.content}`);
+    });
+}
+
+function clipExists(_content)
+{
+    let _query = `SELECT * FROM clips WHERE content = ?`;
+    dblite.each(_query, [_content], function(err, row)
+    {
+        if (err) throw err;
+        if (row.length > 0) console.log("exists");
+        else    console.log("DOES NOT exists");
+    });
+}
 
 document.addEventListener('blur', function(e)
 {
@@ -302,7 +340,7 @@ setTimeout(async function()
 
     let prevClipText = clipboard.readText();
 
-    setInterval(async function()
+    setInterval(async function() // STORE AUTOMATICALLY
     {
         if (prevClipText !== clipboard.readText())
         {
