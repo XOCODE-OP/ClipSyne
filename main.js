@@ -7,6 +7,26 @@
 // jshint varstmt:true
 
 const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron');
+const robot = require('robotjs');
+const ffi = require('ffi-napi');
+const user32 = new ffi.Library('user32', {
+    'GetTopWindow': ['long', ['long']],
+    'FindWindowA': ['long', ['string', 'string']],
+    'SetActiveWindow': ['long', ['long']],
+    'SetForegroundWindow': ['bool', ['long']],
+    'BringWindowToTop': ['bool', ['long']],
+    'ShowWindow': ['bool', ['long', 'int']],
+    'SwitchToThisWindow': ['void', ['long', 'bool']],
+    'GetForegroundWindow': ['long', []],
+    'AttachThreadInput': ['bool', ['int', 'long', 'bool']],
+    'GetWindowThreadProcessId': ['int', ['long', 'int']],
+    'SetWindowPos': ['bool', ['long', 'long', 'int', 'int', 'int', 'int', 'uint']],
+    'SetFocus': ['long', ['long']]
+});
+const kernel32 = new ffi.Library('Kernel32.dll', {
+    'GetCurrentThreadId': ['int', []]
+});
+let prevOSProgramInFocus;
 const shortcutPopupStr = "Ctrl+Shift+Insert";
 let visor = {};
 const DEBUG = false;
@@ -171,6 +191,9 @@ app.on('ready', function()
         //     createWindow();
         // }
         // if (BrowserWindow.getAllWindows().length === 0) createWindow();
+
+        prevOSProgramInFocus = user32.GetForegroundWindow();
+
         if (!visor.mainWindow)
             createWindow(false);
         else
@@ -247,6 +270,23 @@ app.on("before-quit", function(ev)
     visor.mainWindow = null;
     visor = null;
 
+});
+
+
+
+ipcMain.on('robot_paste', function(event, arg)
+{
+    console.log("Incoming ROBOT msg from render to main: ", arg);
+    
+    setTimeout(() => {
+        user32.SetForegroundWindow(prevOSProgramInFocus);
+        
+        setTimeout(() => {
+            robot.keyTap('v', process.platform==='darwin' ? 'command' : 'control');
+        }, 10);
+
+    }, 10);
+    
 });
 
 function ipcTest()

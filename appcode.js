@@ -9,6 +9,7 @@
 // jshint browser: true
 
 const { clipboard, remote, ipcRenderer } = require('electron');
+
 const sqlite3 = require('sqlite3').verbose();
 const dblite = new sqlite3.Database('./clipsdatabase.s3db');
 const COLOR_SELECTION = "rgb(29, 25, 34)";
@@ -138,6 +139,7 @@ function setupKeyboardEvents()
             if (selectedClip.uiid > -1 && selectedClip.dbid > -1 && selectedClip.content.length > 0)
             {
                 clipboard.writeText(selectedClip.content);
+                ipcRenderer.send('robot_paste', selectedClip.content);
                 thisWindow.hide();
             }
         }
@@ -296,6 +298,7 @@ function refreshView()
                 selectedClip.uiid = i;
                 setSelecteditemPerUIID();
                 clipboard.writeText(selectedClip.content);
+                ipcRenderer.send('robot_paste', selectedClip.content);
                 thisWindow.hide();
             });
             entrydiv.addEventListener("mouseenter", function(e)
@@ -317,8 +320,6 @@ function refreshView()
     });
 
 }
-
-
 
 
 

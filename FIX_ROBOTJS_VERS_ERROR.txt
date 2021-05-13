@@ -1,0 +1,4 @@
+https://github.com/octalmage/robotjs/issues/466#issuecomment-590491327
+
+npm install -D electron-rebuild
+npx electron-rebuild -f -t prod,optional,dev -w robotjs

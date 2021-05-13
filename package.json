@@ -14,11 +14,14 @@
   "license": "",
   "devDependencies": {
     "electron-builder": "^22.6.0",
-    "electron-rebuild": "^1.8.5"
+    "electron-rebuild": "^1.11.0"
   },
   "dependencies": {
     "dexie": "^3.0.0",
     "electron": "^12.0.6",
+    "ffi-napi": "^4.0.3",
+    "node-abi": "^2.26.0",
+    "robotjs": "^0.6.0",
     "sqlite3": "^5.0.2"
   }
 }
