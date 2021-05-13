@@ -149,6 +149,21 @@ function setupKeyboardEvents()
         {
             keySHIFT = false;    
         }
+        else if (e.key === 'ArrowRight')
+        {
+            if (selectedClip.uiid > -1)
+            {
+                let all = document.getElementsByClassName("entry_item");
+                for (let i = 0; i < all.length; i++)
+                {
+                    if (i == selectedClip.uiid)
+                    {
+                        all[i].style.backgroundColor = "black";
+                        all[i].style.height = "auto";
+                    }
+                }
+            }
+        }
         else if (e.key === 'ArrowUp')
         {
             if (selectedClip.uiid == -1) selectedClip.uiid = 0;
@@ -232,7 +247,12 @@ function recolorSelection()
     for (let i = 0; i < all.length; i++)
     {
         all[i].style.backgroundColor = "transparent";
-        if (i == selectedClip.uiid) all[i].style.backgroundColor = COLOR_SELECTION;
+        all[i].style.height = "";
+        if (i == selectedClip.uiid)
+        {
+            all[i].style.backgroundColor = COLOR_SELECTION;
+            //all[i].style.height = "auto";
+        }
     }
 }
 
@@ -261,12 +281,13 @@ function refreshView()
         for (let i = 0; i < rows.length; i++)
         {
             const row = rows[i];
-
+            const _content = row.content.replace(/\n/g, ' ');
             const entrydiv = document.createElement('div');
             entrydiv.classList.add("entry_item");
             entrydiv.dataset.dbid = ""+row.id;
             entrydiv.innerHTML = "";
-            entrydiv.innerText = row.content.replace(/\n/g, ' ');
+            entrydiv.innerText = _content;
+            entrydiv.innerHTML += `<span class='tooltip'>${_content}</span>`;
             if (i == COLOR_SELECTION.uiid) entrydiv.style.backgroundColor = COLOR_SELECTION;
             
             entrydiv.addEventListener("click", function(e)
