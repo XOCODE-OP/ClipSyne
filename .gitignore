@@ -1,2 +1,5 @@
 node_modules*
+build/*
+build\*
 *.s3db
+db*.json
