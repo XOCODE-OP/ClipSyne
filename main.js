@@ -1,13 +1,18 @@
 'use strict';
-'esversion: 8';
+/* jshint esversion: 11 */
 // jshint node: true
 // jshint trailingcomma: false
 // jshint undef:true
 // jshint unused:true
 // jshint varstmt:true
+// jshint browser: true
 
 const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron');
-const robot = require('robotjs');
+//const { BrowserWindow } = require('@electron/remote');
+//const { BrowserWindow } = require('electron');
+require('@electron/remote/main').initialize();
+const nutjs = require("@nut-tree/nut-js");
+// const robot = require('robotjs');
 const ffi = require('ffi-napi');
 const user32 = new ffi.Library('user32', {
     'GetTopWindow': ['long', ['long']],
@@ -31,7 +36,11 @@ const shortcutPopupStr = "Ctrl+Shift+Insert";
 let visor = {};
 const DEBUG = false;
 
-console.log("CLIPSYNC 1.74");
+let targetWindowWidth  = 600;
+if (DEBUG)  targetWindowWidth *= 2;
+let targetWindowHeight = 500;
+
+console.log("CLIPSYNC 1.7.5");
 console.log("Use", shortcutPopupStr, "to open.");
 
 if (!app.requestSingleInstanceLock()) {
@@ -47,39 +56,22 @@ function createWindow(fixedPos) {
     // Create the browser window.
 
     let p = screen.getCursorScreenPoint();
-    let myWidth  = 400;
-    if (DEBUG)  myWidth *= 2;
-    let myHeight = 500;
 
     if (fixedPos)
     {
         p = {};
-        p.x = screen.getPrimaryDisplay().size.width - myWidth - 40;
-        p.y = screen.getPrimaryDisplay().size.height - myHeight - 40;
+        let curScreen = screen.getDisplayNearestPoint(p);
+        p.x = curScreen.size.width - targetWindowWidth - 40;
+        p.y = curScreen.size.height - targetWindowHeight - 40;
     }
     else
     {
-        if ((p.y + myHeight) > screen.getPrimaryDisplay().size.height)
-        {
-            p.y = screen.getPrimaryDisplay().size.height - myHeight - 30;
-        }
-        if (p.y < 0)
-        {
-            p.y = 0;
-        }
-        if ((p.x + myWidth) > screen.getPrimaryDisplay().size.width)
-        {
-            p.x = screen.getPrimaryDisplay().size.width - myWidth;
-        }
-        if (p.x < 0)
-        {
-            p.x = 0;
-        }
+        p = calculatePosition();
     }
 
     visor.mainWindow = new BrowserWindow({
-        width: myWidth,
-        height: myHeight,
+        width: targetWindowWidth,
+        height: targetWindowHeight,
         x: p.x,
         y: p.y,
         frame: false,
@@ -97,6 +89,7 @@ function createWindow(fixedPos) {
             enableRemoteModule: true
         }
     }); 
+    require('@electron/remote/main').enable(visor.mainWindow.webContents);
     
     if (DEBUG)
     {
@@ -159,11 +152,29 @@ function createWindow(fixedPos) {
 //     console.log(selection);
 // }
 
+function calculatePosition()
+{
+    let p = screen.getCursorScreenPoint();
+    let curScreen = screen.getDisplayNearestPoint(p);
+    if ((p.x + targetWindowWidth) > curScreen.workArea.x + curScreen.workArea.width )
+    {
+        p.x = curScreen.workArea.x + curScreen.workArea.width - targetWindowWidth ;
+    }
+    if ((p.y + targetWindowHeight) > curScreen.workArea.y + curScreen.workArea.height)
+    {
+        p.y = curScreen.workArea.y + curScreen.size.height - targetWindowHeight;
+    }
+    if (p.x < 0)    p.x = 0;
+    if (p.y < 0)    p.y = 0;
+
+    return p;
+}
+
 app.on('browser-window-focus', function(event, win)
 {
     // console.log('FOCUS', win.webContents.id);
 
-    let p = screen.getCursorScreenPoint();
+    let p = calculatePosition();
     win.webContents.send('focusmsg', p);
     visor.mainWindow.setPosition(p.x, p.y);
 });
@@ -183,46 +194,55 @@ app.on('browser-window-blur', function(event, win)
 app.on('ready', function()
 {
     console.log("app ready");
+    if (!visor.mainWindow)
+        createWindow(false);
+    else
+        visor.mainWindow.show();
+    visor.mainWindow.hide();
+
     globalShortcut.register(shortcutPopupStr, function()
     {
-        //console.log(`visor.mainWindow: ${visor.mainWindow}`);
-        //console.log(`BrowserWindow.getAllWindows().length: ${BrowserWindow.getAllWindows().length}`);
-        // if (visor.mainWindow === null) {
-        //     createWindow();
-        // }
-        // if (BrowserWindow.getAllWindows().length === 0) createWindow();
-
         prevOSProgramInFocus = user32.GetForegroundWindow();
+        // console.log("prevOSProgramInFocus", prevOSProgramInFocus);
+        // (async () => {
+        //     const windowRef = await nutjs.getActiveWindow();
+        //     console.log("windowRef", windowRef);
+        //     console.log("windowRef title", windowRef.title);
+        //     //IF TITLE INCLUDES KEEPASS
+        // })();
 
         if (!visor.mainWindow)
             createWindow(false);
         else
             visor.mainWindow.show();
+
+        //visor.mainWindow.webContents.send('init');
     });
 
     visor.tray = new Tray("./icon.png");
     visor.tray.setToolTip('Click to show your clipboard history');
 
     const contextMenu = Menu.buildFromTemplate(
-        [   {
-                label: "Display",
-                click: function(item, window, event)
-                {
-                    createWindow(true);
-                }
-            },
+    [   {
+            label: "Display",
+            click: function(item, window, event)
             {
-                type: "separator"
-            },
-            {
-                label: "Exit",
-                role: "quit"
-            } // "role": system prepared action menu
-        ]);
+                createWindow(true);
+            }
+        },
+        {
+            type: "separator"
+        },
+        {
+            label: "Exit",
+            role: "quit"
+        } // "role": system prepared action menu
+    ]);
 
     //let contextMenu = Menu.buildFromTemplate(template);
     visor.tray.setContextMenu(contextMenu);
     //visor.tray.setImage('./icon.png');
+    
 });
 
 // do not quit when all windows are closed
@@ -264,15 +284,11 @@ app.on("before-quit", function(ev)
     // Unregister all shortcuts.
     globalShortcut.unregisterAll();
 
-
     visor.mainWindow.removeAllListeners("close");
     visor.mainWindow.destroy();
     visor.mainWindow = null;
     visor = null;
-
 });
-
-
 
 ipcMain.on('robot_paste', function(event, arg)
 {
@@ -280,13 +296,30 @@ ipcMain.on('robot_paste', function(event, arg)
     
     setTimeout(() => {
         user32.SetForegroundWindow(prevOSProgramInFocus);
-        
+
         setTimeout(() => {
-            robot.keyTap('v', process.platform==='darwin' ? 'command' : 'control');
+            //robot.keyTap('v', process.platform==='darwin' ? 'command' : 'control');
+            // nutjs.keyboard.pressKey(nutjs.Key.LeftControl);
+            nutjs.keyboard.type(nutjs.Key.LeftControl, nutjs.Key.V);
+            // nutjs.keyboard.releaseKey(nutjs.Key.LeftControl);
+            //nutjs.mouse.move(nutjs.right(400));
+
+            // async function gg()
+            // {
+            //     let rr = await nutjs.clipboard.paste();
+            //     console.log(rr);
+            // }
+            // gg();
+            
         }, 10);
 
     }, 10);
     
+});
+
+ipcMain.on('main_console', function(event, arg)
+{
+    console.log(arg);
 });
 
 function ipcTest()

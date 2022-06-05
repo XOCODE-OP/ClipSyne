@@ -96,4 +96,5 @@ td:first-child
     overflow: hidden;
     height: 20px;
     cursor: pointer;
+    white-space: pre;
 }

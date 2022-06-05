@@ -1,36 +1,150 @@
 'use strict';
-'esversion: 8';
-// jshint esversion: 8
+/* jshint esversion: 11 */
 // jshint node: true
 // jshint trailingcomma: false
 // jshint undef:true
-// jshint unused:true
+// jshint unused:false
 // jshint varstmt:true
 // jshint browser: true
 
-const { clipboard, remote, ipcRenderer } = require('electron');
+const { clipboard, ipcRenderer } = require('electron');
+const remote = require('@electron/remote');
+//const { BrowserWindow } = require('@electron/remote')
 
-const sqlite3 = require('sqlite3').verbose();
-const dblite = new sqlite3.Database('./clipsdatabase.s3db');
+const fs = require('fs');
 const COLOR_SELECTION = "rgb(29, 25, 34)";
-
+const MAX_RESULTS = 30;
+let contentArray;
+let filename = "./db_01.json";
 let searchfield;
 let thisWindow;
 let rightMouseDown = false;
-let entry_list;
 let keyCTRL = false;
 let keySHIFT = false;
 let selectedClip = {};
-selectedClip.uiid = -1;
+selectedClip.uiIndex = -1;
 selectedClip.dbid = -1;
 selectedClip.content = "";
 
+function initData(_filename) //loads if exists
+{
+    contentArray = [];
+    filename = _filename;
+    if (fs.existsSync( filename ))
+    {
+        try {
+            contentArray = JSON.parse( fs.readFileSync(filename, "utf8") );
+        } catch (error) {
+            contentArray = [];
+            console.log(`COULD NOT LOAD ${filename}`);
+        }
+    }
+}
+
+function saveToDisk()
+{
+    fs.writeFile(filename, JSON.stringify(contentArray), function(){});   
+}
+
+function removeData(index)
+{
+    contentArray.splice(index, 1);
+    saveToDisk();
+}
+
+function addData(content)
+{
+    let match = false;
+    for (let i = 0; i < contentArray.length; i++)
+    {
+        if (contentArray[i] == content) match = true;
+    }
+    
+    if (!match)
+    {
+        contentArray.unshift(content);
+        saveToDisk();
+    }
+}
+
+function searchData(term)
+{
+    console.log("SEARCH DATA:", term);
+    let results = []; //array of indexes
+
+    for (let i = 0; i < contentArray.length; i++)
+    {
+        const e = contentArray[i];
+        if (e.includes(term))
+        {
+            console.log("search:", e, "DOES INCLUDE", term);
+            results.push(i);
+        }
+        else
+        {
+            console.log("search:", e, "-no include-", term);
+        }
+        if (results.length >= MAX_RESULTS) return results;
+    }
+
+    if (results.length < 1)
+    {
+        let termSmall = term.toLowerCase();
+        for (let i = 0; i < contentArray.length; i++)
+        {
+            const e = contentArray[i];
+            if (e.toLowerCase().includes(termSmall)) results.push(i);
+            if (results.length >= MAX_RESULTS) return results;
+        }
+    }
+
+    if (results.length > 0) return results;
+    else return null;
+
+    // for (let [key, value] of map.entries()) {
+    //     //console.log(key + " = " + value)
+    // }
+}
+
+
+
 function resetSelection()
 {
-    selectedClip.uiid = -1;
+    selectedClip.uiIndex = -1;
     selectedClip.dbid = -1;
     selectedClip.content = "";
 }
+
+/* CHECK IF ALWAYS COPY TO DATASTORE
+does not init before first window popup
+*/
+
+let prevClipText = clipboard.readText();
+function init()
+{
+    console.log("INIT");
+    prevClipText = clipboard.readText();
+    setInterval(async function() // STORE AUTOMATICALLY
+    {
+        ipcRenderer.send('main_console', Date.now()/1000 + "\tstore");
+        if (prevClipText !== clipboard.readText())
+        {
+            prevClipText = clipboard.readText();
+
+            let lastInsert = contentArray[0];
+            if (lastInsert != prevClipText)
+            {
+                addData(prevClipText);
+                //refreshView();
+            }
+        }
+    }, 100);
+    initData(filename);
+    thisWindow =  remote.getCurrentWindow();
+    searchfield = document.querySelector('#searchfield');
+}
+init();
+
 
 
 ipcRenderer.on('focusmsg', function(event, message)
@@ -42,63 +156,32 @@ ipcRenderer.on('focusmsg', function(event, message)
     //let p = message;
 });
 
-ipcRenderer.on('dbclose', function(event, message)
+ipcRenderer.on('init', function(event, message)
 {
-    dblite.close();
+    console.log("init from main");
 });
 
-document.addEventListener('DOMContentLoaded', function(event)
+ipcRenderer.on('dbclose', function(event, message)
 {
-    thisWindow =  remote.getCurrentWindow();
-    searchfield = document.querySelector('#searchfield');
+    saveToDisk();
+});
+
+//document.addEventListener('DOMContentLoaded', function(event)
+window.addEventListener('load', function(event)
+{
+    console.log("WINDOW LOAD");
+    // console.log("window", window);
+    // console.log("thisWindow", thisWindow);
     searchfield.style.display = 'none';
-    entry_list = document.querySelector('#entry_list');
-
-    //console.log(remote.app.getPath('userData'));
-
-    setTimeout(async function()
-    {
-        refreshView();
-
-        let prevClipText = clipboard.readText();
-
-        setInterval(async function() // STORE AUTOMATICALLY
-        {
-            if (prevClipText !== clipboard.readText())
-            {
-                prevClipText = clipboard.readText();
-
-                //finding the existing one first is going to be slow when things get big
-                let _query = `SELECT * FROM clips WHERE content = ?`;
-                dblite.all(_query, [prevClipText], function(err, rows)
-                {
-                    if (err) throw err;
-                    if (!rows || rows.length == 0)
-                    {
-                        let myquery = `INSERT INTO clips(id, content) VALUES(NULL, ?)`;
-                        dblite.run(myquery, [prevClipText], function(err)
-                        {
-                            if (err) return console.log(err.message);
-                            refreshView();                            
-                        });
-                    }
-                });
-            }
-        }, 400);
-    });
-    
-    setTimeout(function()
-    {
-        setupKeyboardEvents();
-        window.focus();
-    }, 300);
+    refreshView();
+    setupKeyboardEvents();
     window.focus();
 });
 
-
-
 document.addEventListener('blur', function(e)
 {
+    searchfield.value = "";
+    searchfield.style.display = 'none';
     thisWindow.hide();
 });
 
@@ -111,9 +194,9 @@ function getUiEntryItem(_re)
     }
 }
 
-function setSelecteditemPerUIID()
+function setSelecteditemPeruiIndex()
 {
-    let e = getUiEntryItem(selectedClip.uiid);
+    let e = getUiEntryItem(selectedClip.uiIndex);
     selectedClip.dbid = e.dataset.dbid;
     selectedClip.content = e.innerText;
 }
@@ -136,7 +219,7 @@ function setupKeyboardEvents()
         //focusable.push(searchfield);
         if (e.key === 'Enter')
         {
-            if (selectedClip.uiid > -1 && selectedClip.dbid > -1 && selectedClip.content.length > 0)
+            if (selectedClip.uiIndex > -1 && selectedClip.dbid > -1 && selectedClip.content.length > 0)
             {
                 clipboard.writeText(selectedClip.content);
                 ipcRenderer.send('robot_paste', selectedClip.content);
@@ -153,12 +236,12 @@ function setupKeyboardEvents()
         }
         else if (e.key === 'ArrowRight')
         {
-            if (selectedClip.uiid > -1)
+            if (selectedClip.uiIndex > -1)
             {
                 let all = document.getElementsByClassName("entry_item");
                 for (let i = 0; i < all.length; i++)
                 {
-                    if (i == selectedClip.uiid)
+                    if (i == selectedClip.uiIndex)
                     {
                         all[i].style.backgroundColor = "black";
                         all[i].style.height = "auto";
@@ -168,41 +251,40 @@ function setupKeyboardEvents()
         }
         else if (e.key === 'ArrowUp')
         {
-            if (selectedClip.uiid == -1) selectedClip.uiid = 0;
-                else selectedClip.uiid--;
-            if (selectedClip.uiid < 0) selectedClip.uiid = 0;
+            if (selectedClip.uiIndex == -1) selectedClip.uiIndex = 0;
+                else selectedClip.uiIndex--;
+            if (selectedClip.uiIndex < 0) selectedClip.uiIndex = 0;
 
-            setSelecteditemPerUIID();
+            setSelecteditemPeruiIndex();
             recolorSelection();
         }
         else if (e.key === 'ArrowDown')
         {
-            if (selectedClip.uiid == -1) selectedClip.uiid = 0;
+            if (selectedClip.uiIndex == -1) selectedClip.uiIndex = 0;
             else
-                selectedClip.uiid++;
+                selectedClip.uiIndex++;
 
-            setSelecteditemPerUIID();
+            setSelecteditemPeruiIndex();
             recolorSelection();
         }
         else if (e.key === 'Delete' || e.key === 'Backspace')
         {
-            if (keySHIFT && keyCTRL && selectedClip.uiid > -1 && selectedClip.dbid > -1)
-            {
-                let _query = `DELETE FROM clips WHERE id = ?`;
-                dblite.run(_query, [selectedClip.dbid], function(err)
-                {
-                    if (err) return console.log(err.message);
-
-                    refreshView();
-                });
-            }
             if (searchfield === document.activeElement)
             {
-                refreshView();
+                refreshView(false);
+            }
+            if (keySHIFT && keyCTRL && selectedClip.uiIndex > -1 && selectedClip.dbid > -1)
+            {
+                removeData(selectedClip.dbid);
+                refreshView(false);
+                setSelecteditemPeruiIndex();
+                recolorSelection();
             }
         }
         else if (e.key === 'Escape')
         {
+            searchfield.value = "";
+            searchfield.style.display = 'none';
             thisWindow.hide();
         }
         else
@@ -250,7 +332,7 @@ function recolorSelection()
     {
         all[i].style.backgroundColor = "transparent";
         all[i].style.height = "";
-        if (i == selectedClip.uiid)
+        if (i == selectedClip.uiIndex)
         {
             all[i].style.backgroundColor = COLOR_SELECTION;
             //all[i].style.height = "auto";
@@ -258,135 +340,70 @@ function recolorSelection()
     }
 }
 
-function refreshView()
+function refreshView(resetSel = true)
 {
-    resetSelection();
+    if (resetSel) resetSelection();
     //console.log("refreshview ", new Error().stack);
-    let query, params;
-
-    if (searchfield.value.length > 0)
+    let indexesToShow = [];
+    let query = searchfield.value;
+    if (query.length > 0)
     {
-        query = `SELECT * FROM clips WHERE content LIKE ? ORDER BY id DESC`;
-        params = ['%' + searchfield.value.toLowerCase() + '%'];
+        let results = searchData(query);
+        if (results != null && results.length > 0)
+        {
+            indexesToShow = results;
+        }
     }
     else
     {
-        query = `SELECT * FROM clips ORDER BY id DESC LIMIT ?`;
-        params = [100];
-    }
-
-    dblite.all(query, params, function(err, rows)
-    {
-        if (err) throw err;
-
-        entry_list.innerHTML = '';
-        for (let i = 0; i < rows.length; i++)
+        //recent data
+        let lastIndex = Math.min(MAX_RESULTS, contentArray.length-1);
+        for (let i = 0; i < lastIndex; i++)
         {
-            const row = rows[i];
-            const _content = row.content.replace(/\n/g, ' ');
-            const entrydiv = document.createElement('div');
-            entrydiv.classList.add("entry_item");
-            entrydiv.dataset.dbid = ""+row.id;
-            entrydiv.innerHTML = "";
-            entrydiv.innerText = _content;
-            entrydiv.innerHTML += `<span class='tooltip'>${_content}</span>`;
-            if (i == COLOR_SELECTION.uiid) entrydiv.style.backgroundColor = COLOR_SELECTION;
-            
-            entrydiv.addEventListener("click", function(e)
-            {
-                //clipboard.writeText((await db.clips.get(row.id)).content);
-                selectedClip.uiid = i;
-                setSelecteditemPerUIID();
-                clipboard.writeText(selectedClip.content);
-                ipcRenderer.send('robot_paste', selectedClip.content);
-                thisWindow.hide();
-            });
-            entrydiv.addEventListener("mouseenter", function(e)
-            {
-                //console.log("mouseenter ", row.id);
-                //this.style.backgroundColor = "rgb(29, 25, 34)";
-                selectedClip.uiid = i;
-                setSelecteditemPerUIID();
-                recolorSelection();
-            });
-            entrydiv.addEventListener("mouseleave", function(e)
-            {
-                //console.log("entry", row.id);
-                //this.style.backgroundColor = "transparent";
-                //recolorSelection();
-            });
-            entry_list.appendChild(entrydiv);
+            indexesToShow.push(i);
         }
-    });
-
-}
-
-
-
-
-function examples()
-{
-
-    function ipcTest()
-    {
-        ipcRenderer.on('asynchronous-reply', function(event, arg)
-        {
-            console.log("Incoming async msg from MAIN to render: ", arg);
-        });
-        let ipcResponse = ipcRenderer.sendSync('synchronous-message', 'this is a sync msg from the render');
-        console.log(ipcResponse);
-        ipcResponse = ipcRenderer.send('asynchronous-message', 'async msg from render');
-        console.log(ipcResponse);
+        // query = `SELECT * FROM clips ORDER BY id DESC LIMIT ?`;
+        // params = [100];
     }
 
-    function addClip(_content)
+    let entry_list = document.querySelector('#entry_list');
+    entry_list.innerHTML = '';
+    for (let i = 0; i < indexesToShow.length; i++)
     {
-        let _query = `INSERT INTO clips(id, content) VALUES(NULL, ?)`;
-        dblite.run(_query, [_content], function(err)
+        //const _content = contentArray[indexesToShow[i]].replace(/\n/g, ' ');
+        const _content = contentArray[indexesToShow[i]];
+        const entrydiv = document.createElement('div');
+        entrydiv.classList.add("entry_item");
+        entrydiv.dataset.dbid = ""+indexesToShow[i];
+        entrydiv.innerHTML = "";
+        entrydiv.innerText = _content;
+        //entrydiv.innerHTML += `<span class='tooltip'>${_content}</span>`;
+        if (i == COLOR_SELECTION.uiIndex) entrydiv.style.backgroundColor = COLOR_SELECTION;
+        
+        entrydiv.addEventListener("click", function(e)
         {
-            if (err) return console.log(err.message);
-            console.log(`A row has been inserted with row id ${this.lastID}`);
+            //clipboard.writeText((await db.clips.get(row.id)).content);
+            selectedClip.uiIndex = i;
+            setSelecteditemPeruiIndex();
+            clipboard.writeText(selectedClip.content);
+            ipcRenderer.send('robot_paste', selectedClip.content);
+            thisWindow.hide();
         });
-    }
-
-    function findClips(_search)
-    {
-        let _query = `SELECT * FROM clips WHERE content LIKE ?`;
-        dblite.each(_query, ['%' + _search + '%'], function(err, row)
+        entrydiv.addEventListener("mouseenter", function(e)
         {
-            if (err) throw err;
-            console.log(`FIND CLIPS: ${row.id} ${row.content}`);
+            //console.log("mouseenter ", row.id);
+            //this.style.backgroundColor = "rgb(29, 25, 34)";
+            selectedClip.uiIndex = i;
+            setSelecteditemPeruiIndex();
+            recolorSelection();
         });
-    }
-
-    function getClip(_id)
-    {
-        let _query = `SELECT * FROM clips WHERE id = ?`;
-        dblite.each(_query, [_id], function(err, row)
+        entrydiv.addEventListener("mouseleave", function(e)
         {
-            if (err) throw err;
-            console.log(`GET CLIP: ${row.id} ${row.content}`);
+            //console.log("entry", row.id);
+            //this.style.backgroundColor = "transparent";
+            //recolorSelection();
         });
-    }
-
-    function getAllClips(_limit)
-    {
-        let _query = `SELECT * FROM clips LIMIT ?`;
-        dblite.each(_query, [_limit], function(err, row)
-        {
-            if (err) throw err;
-            console.log(`ALL: ${row.id} ${row.content}`);
-        });
-    }
-
-    function clipExists(_content)
-    {
-        let _query = `SELECT * FROM clips WHERE content = ?`;
-        dblite.all(_query, [_content], function(err, rows)
-        {
-            if (err) throw err;
-            console.log(`FOUND: ${rows.length}`);
-        });
+        entry_list.appendChild(entrydiv);
     }
 
 }
