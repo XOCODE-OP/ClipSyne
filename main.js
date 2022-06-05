@@ -31,6 +31,7 @@ const user32 = new ffi.Library('user32', {
 const kernel32 = new ffi.Library('Kernel32.dll', {
     'GetCurrentThreadId': ['int', []]
 });
+const storage = require("./storage");
 let prevOSProgramInFocus;
 const shortcutPopupStr = "Ctrl+Shift+Insert";
 let visor = {};
@@ -40,8 +41,10 @@ let targetWindowWidth  = 600;
 if (DEBUG)  targetWindowWidth *= 2;
 let targetWindowHeight = 500;
 
-console.log("CLIPSYNC 1.7.5");
+console.log("CLIPSYNC 1.7.6");
 console.log("Use", shortcutPopupStr, "to open.");
+
+
 
 if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -127,9 +130,6 @@ function createWindow(fixedPos) {
         ev.preventDefault(); // prevent quit process
     });
 
-    
-
-
     // globalShortcut.register('CommandOrControl+X', () => {
     //     console.log("shortcut");
     //     alert("bleb");
@@ -194,6 +194,27 @@ app.on('browser-window-blur', function(event, win)
 app.on('ready', function()
 {
     console.log("app ready");
+    storage.init();
+
+    //init clipboard monitoring
+    let prevClipText = clipboard.readText();
+    setInterval(async function() // STORE AUTOMATICALLY
+    {
+        // console.log((Date.now()/1000 + "\tstore").substring(6, 14));
+        if (prevClipText !== clipboard.readText())
+        {
+            prevClipText = clipboard.readText();
+
+            let lastInsert = storage.raw(0);
+            if (lastInsert != prevClipText)
+            {
+                storage.add(prevClipText);
+                //refreshView();
+            }
+        }
+    }, 333);
+
+    
     if (!visor.mainWindow)
         createWindow(false);
     else
@@ -277,7 +298,9 @@ app.on("before-quit", function(ev)
 {
     console.log("CLOSING CLIPSYNE");
 
-    visor.mainWindow.webContents.send('dbclose', 'closeit');
+    //send to frontend
+    //visor.mainWindow.webContents.send('dbclose', 'closeit');
+    storage.saveToDisk();
 
     // Unregister a shortcut.
     globalShortcut.unregister(shortcutPopupStr);
@@ -288,6 +311,29 @@ app.on("before-quit", function(ev)
     visor.mainWindow.destroy();
     visor.mainWindow = null;
     visor = null;
+});
+
+ipcMain.on('storage_remove', function(event, arg)
+{
+    //console.log("Incoming ROBOT msg from render to main: ", arg);
+    storage.remove(arg);
+});
+
+ipcMain.handle('storage_search', (event, arg) => {
+
+    
+    //console.log("Incoming ROBOT msg from render to main: ", arg);
+    let results = storage.search(arg);
+    return results;
+    //visor.mainWindow.webContents.send('searchresults', results);
+});
+
+ipcMain.handle('storage_recent', (event, arg) => {
+
+    //console.log("Incoming ROBOT msg from render to main: ", arg);
+    let results = storage.recent();
+    return results;
+    //visor.mainWindow.webContents.send('searchresults', results);
 });
 
 ipcMain.on('robot_paste', function(event, arg)

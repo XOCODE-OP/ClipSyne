@@ -11,11 +11,7 @@ const { clipboard, ipcRenderer } = require('electron');
 const remote = require('@electron/remote');
 //const { BrowserWindow } = require('@electron/remote')
 
-const fs = require('fs');
 const COLOR_SELECTION = "rgb(29, 25, 34)";
-const MAX_RESULTS = 30;
-let contentArray;
-let filename = "./db_01.json";
 let searchfield;
 let thisWindow;
 let rightMouseDown = false;
@@ -26,87 +22,6 @@ selectedClip.uiIndex = -1;
 selectedClip.dbid = -1;
 selectedClip.content = "";
 
-function initData(_filename) //loads if exists
-{
-    contentArray = [];
-    filename = _filename;
-    if (fs.existsSync( filename ))
-    {
-        try {
-            contentArray = JSON.parse( fs.readFileSync(filename, "utf8") );
-        } catch (error) {
-            contentArray = [];
-            console.log(`COULD NOT LOAD ${filename}`);
-        }
-    }
-}
-
-function saveToDisk()
-{
-    fs.writeFile(filename, JSON.stringify(contentArray), function(){});   
-}
-
-function removeData(index)
-{
-    contentArray.splice(index, 1);
-    saveToDisk();
-}
-
-function addData(content)
-{
-    let match = false;
-    for (let i = 0; i < contentArray.length; i++)
-    {
-        if (contentArray[i] == content) match = true;
-    }
-    
-    if (!match)
-    {
-        contentArray.unshift(content);
-        saveToDisk();
-    }
-}
-
-function searchData(term)
-{
-    console.log("SEARCH DATA:", term);
-    let results = []; //array of indexes
-
-    for (let i = 0; i < contentArray.length; i++)
-    {
-        const e = contentArray[i];
-        if (e.includes(term))
-        {
-            console.log("search:", e, "DOES INCLUDE", term);
-            results.push(i);
-        }
-        else
-        {
-            console.log("search:", e, "-no include-", term);
-        }
-        if (results.length >= MAX_RESULTS) return results;
-    }
-
-    if (results.length < 1)
-    {
-        let termSmall = term.toLowerCase();
-        for (let i = 0; i < contentArray.length; i++)
-        {
-            const e = contentArray[i];
-            if (e.toLowerCase().includes(termSmall)) results.push(i);
-            if (results.length >= MAX_RESULTS) return results;
-        }
-    }
-
-    if (results.length > 0) return results;
-    else return null;
-
-    // for (let [key, value] of map.entries()) {
-    //     //console.log(key + " = " + value)
-    // }
-}
-
-
 
 function resetSelection()
 {
@@ -115,40 +30,9 @@ function resetSelection()
     selectedClip.content = "";
 }
 
-/* CHECK IF ALWAYS COPY TO DATASTORE
-does not init before first window popup
-*/
-
-let prevClipText = clipboard.readText();
-function init()
-{
-    console.log("INIT");
-    prevClipText = clipboard.readText();
-    setInterval(async function() // STORE AUTOMATICALLY
-    {
-        ipcRenderer.send('main_console', Date.now()/1000 + "\tstore");
-        if (prevClipText !== clipboard.readText())
-        {
-            prevClipText = clipboard.readText();
-
-            let lastInsert = contentArray[0];
-            if (lastInsert != prevClipText)
-            {
-                addData(prevClipText);
-                //refreshView();
-            }
-        }
-    }, 100);
-    initData(filename);
-    thisWindow =  remote.getCurrentWindow();
-    searchfield = document.querySelector('#searchfield');
-}
-init();
-
-
-
 ipcRenderer.on('focusmsg', function(event, message)
 {
+    searchfield = document.querySelector('#searchfield');
     searchfield.value = "";
     searchfield.style.display = 'none';
     refreshView();
@@ -161,15 +45,18 @@ ipcRenderer.on('init', function(event, message)
     console.log("init from main");
 });
 
-ipcRenderer.on('dbclose', function(event, message)
-{
-    saveToDisk();
-});
+//how to receive
+// ipcRenderer.on('dbclose', function(event, message)
+// {
+//     storage_saveToDisk();
+// });
 
 //document.addEventListener('DOMContentLoaded', function(event)
 window.addEventListener('load', function(event)
 {
     console.log("WINDOW LOAD");
+    thisWindow =  remote.getCurrentWindow();
+    searchfield = document.querySelector('#searchfield');
     // console.log("window", window);
     // console.log("thisWindow", thisWindow);
     searchfield.style.display = 'none';
@@ -275,10 +162,9 @@ function setupKeyboardEvents()
             }
             if (keySHIFT && keyCTRL && selectedClip.uiIndex > -1 && selectedClip.dbid > -1)
             {
-                removeData(selectedClip.dbid);
+                ipcRenderer.send('storage_remove', selectedClip.dbid);
+                //storage_removeData(selectedClip.dbid);
                 refreshView(false);
-                setSelecteditemPeruiIndex();
-                recolorSelection();
             }
         }
         else if (e.key === 'Escape')
@@ -340,43 +226,43 @@ function recolorSelection()
     }
 }
 
-function refreshView(resetSel = true)
+async function refreshView(resetSel = true)
 {
     if (resetSel) resetSelection();
     //console.log("refreshview ", new Error().stack);
-    let indexesToShow = [];
+    let resultsToShow = [];
     let query = searchfield.value;
     if (query.length > 0)
     {
-        let results = searchData(query);
+        //ipcRenderer.send('storage_search', selectedClip.dbid);
+        let results = await ipcRenderer.invoke('storage_search', query);
+        // ipcRenderer.send('main_console', ["results1", results]);
         if (results != null && results.length > 0)
         {
-            indexesToShow = results;
+            resultsToShow = results;
         }
     }
     else
     {
-        //recent data
-        let lastIndex = Math.min(MAX_RESULTS, contentArray.length-1);
-        for (let i = 0; i < lastIndex; i++)
+        let results = await ipcRenderer.invoke('storage_recent');
+        // ipcRenderer.send('main_console', ["results2", results]);
+        if (results != null && results.length > 0)
         {
-            indexesToShow.push(i);
+            resultsToShow = results;
         }
-        // query = `SELECT * FROM clips ORDER BY id DESC LIMIT ?`;
-        // params = [100];
     }
+
 
     let entry_list = document.querySelector('#entry_list');
     entry_list.innerHTML = '';
-    for (let i = 0; i < indexesToShow.length; i++)
+    for (let i = 0; i < resultsToShow.length; i++)
     {
         //const _content = contentArray[indexesToShow[i]].replace(/\n/g, ' ');
-        const _content = contentArray[indexesToShow[i]];
         const entrydiv = document.createElement('div');
         entrydiv.classList.add("entry_item");
-        entrydiv.dataset.dbid = ""+indexesToShow[i];
+        entrydiv.dataset.dbid = ""+resultsToShow[i].index;
         entrydiv.innerHTML = "";
-        entrydiv.innerText = _content;
+        entrydiv.innerText = resultsToShow[i].val;
         //entrydiv.innerHTML += `<span class='tooltip'>${_content}</span>`;
         if (i == COLOR_SELECTION.uiIndex) entrydiv.style.backgroundColor = COLOR_SELECTION;
         
@@ -405,5 +291,7 @@ function refreshView(resetSel = true)
         });
         entry_list.appendChild(entrydiv);
     }
+    setSelecteditemPeruiIndex();
+    recolorSelection();
 
 }
