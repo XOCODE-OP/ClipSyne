@@ -12,7 +12,9 @@ const remote = require('@electron/remote');
 //const { BrowserWindow } = require('@electron/remote')
 
 const COLOR_SELECTION = "rgb(29, 25, 34)";
+let entry_list;
 let searchfield;
+let preview_col;
 let thisWindow;
 let rightMouseDown = false;
 let keyCTRL = false;
@@ -22,6 +24,9 @@ selectedClip.uiIndex = -1;
 selectedClip.dbid = -1;
 selectedClip.content = "";
 
+preview_col = document.querySelector(".preview_col");
+searchfield = document.querySelector('#searchfield');
+entry_list = document.querySelector('#entry_list');
 
 function resetSelection()
 {
@@ -45,6 +50,12 @@ ipcRenderer.on('init', function(event, message)
     console.log("init from main");
 });
 
+ipcRenderer.on('embed', function(event, message)
+{
+    ipcRenderer.send('main_console', "embed: "+ message);
+    preview_col.innerHTML = message;
+});
+
 //how to receive
 // ipcRenderer.on('dbclose', function(event, message)
 // {
@@ -56,7 +67,6 @@ window.addEventListener('load', function(event)
 {
     console.log("WINDOW LOAD");
     thisWindow =  remote.getCurrentWindow();
-    searchfield = document.querySelector('#searchfield');
     // console.log("window", window);
     // console.log("thisWindow", thisWindow);
     searchfield.style.display = 'none';
@@ -72,6 +82,12 @@ document.addEventListener('blur', function(e)
     thisWindow.hide();
 });
 
+// entry_list.onwheel = function(e)
+// {
+//     console.log("scroll", e.deltaY);
+//     //e.preventDefault();
+// };
+
 function getUiEntryItem(_re)
 {
     let all = document.getElementsByClassName("entry_item");
@@ -83,9 +99,12 @@ function getUiEntryItem(_re)
 
 function setSelecteditemPeruiIndex()
 {
+    if (selectedClip.uiIndex < 0) return;
     let e = getUiEntryItem(selectedClip.uiIndex);
     selectedClip.dbid = e.dataset.dbid;
     selectedClip.content = e.innerText;
+
+    preview_col.innerText = selectedClip.content;
 }
 
 function setupKeyboardEvents()
@@ -109,8 +128,9 @@ function setupKeyboardEvents()
             if (selectedClip.uiIndex > -1 && selectedClip.dbid > -1 && selectedClip.content.length > 0)
             {
                 clipboard.writeText(selectedClip.content);
-                ipcRenderer.send('robot_paste', selectedClip.content);
+                thisWindow.blur();
                 thisWindow.hide();
+                ipcRenderer.send('robot_paste', selectedClip.content);
             }
         }
         else if (e.key === 'Control')
@@ -193,6 +213,11 @@ function setupKeyboardEvents()
     });
 }
 
+document.addEventListener("keypress", function(e)
+{
+    console.log(`Key pressed ${e.key} \r\n Key code value: ${e.code}`);
+});
+
 document.addEventListener("mouseup", function(e)
 {
     if (e.button == 2) {rightMouseDown = false;}
@@ -253,7 +278,6 @@ async function refreshView(resetSel = true)
     }
 
 
-    let entry_list = document.querySelector('#entry_list');
     entry_list.innerHTML = '';
     for (let i = 0; i < resultsToShow.length; i++)
     {
@@ -262,7 +286,7 @@ async function refreshView(resetSel = true)
         entrydiv.classList.add("entry_item");
         entrydiv.dataset.dbid = ""+resultsToShow[i].index;
         entrydiv.innerHTML = "";
-        entrydiv.innerText = resultsToShow[i].val;
+        entrydiv.innerText = resultsToShow[i].val;//.replace( /[\r\n]+/gm, "" );
         //entrydiv.innerHTML += `<span class='tooltip'>${_content}</span>`;
         if (i == COLOR_SELECTION.uiIndex) entrydiv.style.backgroundColor = COLOR_SELECTION;
         

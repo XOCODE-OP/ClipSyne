@@ -7,41 +7,29 @@
 // jshint varstmt:true
 // jshint browser: true
 
+const OS_WINDOWS = (process.platform == "win32" || process.platform == "win64");
+const OS_MAC = (process.platform == "darwin");
+const OS_LINUX = (process.platform == "linux");
+if (OS_WINDOWS)
+    console.log(`OPERATING SYSTEM: WINDOWS`);
+else if (OS_MAC)
+    console.log(`OPERATING SYSTEM: MAC OS`);
+else if (OS_LINUX)
+    console.log(`OPERATING SYSTEM: LINUX`);
+
 const { app, BrowserWindow, ipcMain, Tray, Menu, clipboard, dialog, screen, globalShortcut } = require('electron');
-//const { BrowserWindow } = require('@electron/remote');
-//const { BrowserWindow } = require('electron');
 require('@electron/remote/main').initialize();
 const nutjs = require("@nut-tree/nut-js");
-// const robot = require('robotjs');
-const ffi = require('ffi-napi');
-const user32 = new ffi.Library('user32', {
-    'GetTopWindow': ['long', ['long']],
-    'FindWindowA': ['long', ['string', 'string']],
-    'SetActiveWindow': ['long', ['long']],
-    'SetForegroundWindow': ['bool', ['long']],
-    'BringWindowToTop': ['bool', ['long']],
-    'ShowWindow': ['bool', ['long', 'int']],
-    'SwitchToThisWindow': ['void', ['long', 'bool']],
-    'GetForegroundWindow': ['long', []],
-    'AttachThreadInput': ['bool', ['int', 'long', 'bool']],
-    'GetWindowThreadProcessId': ['int', ['long', 'int']],
-    'SetWindowPos': ['bool', ['long', 'long', 'int', 'int', 'int', 'int', 'uint']],
-    'SetFocus': ['long', ['long']]
-});
-const kernel32 = new ffi.Library('Kernel32.dll', {
-    'GetCurrentThreadId': ['int', []]
-});
 const storage = require("./storage");
-let prevOSProgramInFocus;
-const shortcutPopupStr = "Ctrl+Shift+Insert";
+const shortcutPopupStr = "Ctrl+Shift+Space";
 let visor = {};
 const DEBUG = false;
 
-let targetWindowWidth  = 600;
+let targetWindowWidth  = 340+340;
 if (DEBUG)  targetWindowWidth *= 2;
-let targetWindowHeight = 500;
+let targetWindowHeight = 400;
 
-console.log("CLIPSYNC 1.7.6");
+console.log("CLIPSYNC 1.7.7");
 console.log("Use", shortcutPopupStr, "to open.");
 
 
@@ -59,11 +47,12 @@ function createWindow(fixedPos) {
     // Create the browser window.
 
     let p = screen.getCursorScreenPoint();
+    let curScreen = screen.getDisplayNearestPoint(p);
 
     if (fixedPos)
     {
         p = {};
-        let curScreen = screen.getDisplayNearestPoint(p);
+        
         p.x = curScreen.size.width - targetWindowWidth - 40;
         p.y = curScreen.size.height - targetWindowHeight - 40;
     }
@@ -221,17 +210,46 @@ app.on('ready', function()
         visor.mainWindow.show();
     visor.mainWindow.hide();
 
+    globalShortcut.register("Ctrl+Shift+H", function()
+    {
+        console.log("Ctrl+Shift+H");
+        if (clipboard.readRTF().length > 0)
+        {
+            //its an RTF
+            console.log("RTF Text of length", clipboard.readRTF().length);
+            visor.mainWindow.webContents.send('embed', `${clipboard.readHTML()}`);
+        }
+        else if (clipboard.readText().length > 0)
+        {
+            //its normal text
+            console.log("Normal Text", clipboard.readText());
+        }
+        else if (clipboard.readImage().getSize().width > 0 || clipboard.readImage().getSize().height)
+        {
+            //its an image
+            console.log("Image of size", clipboard.readImage().getSize());
+            console.log("Image ", clipboard.readImage().toDataURL());
+            
+            
+            //visor.mainWindow.webContents.send('pushimg', `<img src='${clipboard.readImage().toDataURL()}' />`);
+            visor.mainWindow.webContents.send('embed', `<div class='previewpic' style='background-image: url(${clipboard.readImage().toDataURL()});'></div>`);
+        }
+        else if (clipboard.readBuffer('FileNameW').toString('ucs2').length > 0)
+        {
+            //its a file pointer<iframe src="https://archive.org/embed/Popeye_forPresident" 
+            let file = "" + clipboard.readBuffer('FileNameW').toString('ucs2');
+            console.log(file.includes("�"));
+            if (file.includes("%")) file = file.split("%")[0];
+            console.log("Filepointer", file);
+            
+            //visor.mainWindow.webContents.send('embed', `<iframe frameborder="0" src='file:///D:/oneact/inspec/4333-4345.txt'></iframe>`);
+            visor.mainWindow.webContents.send('embed', `<iframe frameborder="0" src='${file}'></iframe>`);
+        }
+
+    });
+
     globalShortcut.register(shortcutPopupStr, function()
     {
-        prevOSProgramInFocus = user32.GetForegroundWindow();
-        // console.log("prevOSProgramInFocus", prevOSProgramInFocus);
-        // (async () => {
-        //     const windowRef = await nutjs.getActiveWindow();
-        //     console.log("windowRef", windowRef);
-        //     console.log("windowRef title", windowRef.title);
-        //     //IF TITLE INCLUDES KEEPASS
-        // })();
-
         if (!visor.mainWindow)
             createWindow(false);
         else
@@ -338,29 +356,8 @@ ipcMain.handle('storage_recent', (event, arg) => {
 
 ipcMain.on('robot_paste', function(event, arg)
 {
-    console.log("Incoming ROBOT msg from render to main: ", arg);
-    
-    setTimeout(() => {
-        user32.SetForegroundWindow(prevOSProgramInFocus);
-
-        setTimeout(() => {
-            //robot.keyTap('v', process.platform==='darwin' ? 'command' : 'control');
-            // nutjs.keyboard.pressKey(nutjs.Key.LeftControl);
-            nutjs.keyboard.type(nutjs.Key.LeftControl, nutjs.Key.V);
-            // nutjs.keyboard.releaseKey(nutjs.Key.LeftControl);
-            //nutjs.mouse.move(nutjs.right(400));
-
-            // async function gg()
-            // {
-            //     let rr = await nutjs.clipboard.paste();
-            //     console.log(rr);
-            // }
-            // gg();
-            
-        }, 10);
-
-    }, 10);
-    
+    //console.log("Incoming ROBOT msg from render to main: ", arg);
+    nutjs.keyboard.type(nutjs.Key.LeftControl, nutjs.Key.V);
 });
 
 ipcMain.on('main_console', function(event, arg)

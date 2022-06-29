@@ -8,10 +8,14 @@
 // jshint browser: true
 
 const fs = require('fs');
+const CryptoJS = require("crypto-js");
+const { DefaultDeserializer } = require('v8');
+const MASTERKEY = "dkJK#FJG234f&3^&TFBG25F45g25a$^Lj()#$$&^%3ggNa6(PMC#(#*NC&$R33563&%MXGCJXNGI";
 
 const MAX_RESULTS = 30;
 let storageArr;
 let filename = "./db_01.json";
+let encryptionEnabled = false;
 
 module.exports = {
     init,
@@ -23,20 +27,31 @@ module.exports = {
     raw
 };
 
-function init() //loads if exists
+function init(_encryptionEnabled = false) //loads if exists
 {
+    encryptionEnabled = _encryptionEnabled;
     console.log(`STORAGE INIT ${filename}`);
     storageArr = [];
     if (fs.existsSync( filename ))
     {
         try {
+            console.time("load");
+            if (encryptionEnabled)
+            asdasdasdasdasdas
+            DefaultDeserializerasd
+            asdasdasdasdasdasdasd
+            asd
+            console.log("STUB: DOWNLOAD FROM CLOUD");
+            console.log("COMPARE FILES, SYNC");
             const rawfile = fs.readFileSync(filename, "utf8");
-            storageArr = JSON.parse( rawfile );
+            const decrypted = decrypt(rawfile);
+            storageArr = JSON.parse( decrypted );
             // console.log(`SUCCESSFUL LOAD ${filename}`, storageArr);
             console.log(`SUCCESSFUL LOAD ${filename}`);
+            console.timeEnd("load");
             // console.log(`raw`, rawfile);
         } catch (error) {
-            storageArr = [];
+            storageArr = ["Clipboard is empty"];
             console.log(`COULD NOT LOAD ${filename}`);
         }
     }
@@ -44,7 +59,13 @@ function init() //loads if exists
 
 function saveToDisk()
 {
-    fs.writeFile(filename, JSON.stringify(storageArr), function(){});   
+    console.time("save");
+    const rawString = JSON.stringify(storageArr);
+    const encryptedString = encrypt(rawString);
+    fs.writeFile(filename, encryptedString, function(){});   
+    fs.writeFile("clear.json", rawString, function(){});   
+    console.log("STUB: PUSH TO CLOUD");
+    console.timeEnd("save");
 }
 
 function remove(index)
@@ -117,4 +138,18 @@ function recent()
 function raw(index)
 {
     return storageArr[index];
+}
+
+function encrypt(message, crkey = MASTERKEY)
+{
+    //console.log("Encrypting Message: " + message + " with key " + crkey);
+    return CryptoJS.AES.encrypt(message, crkey).toString();
+}
+
+function decrypt(ciphertext, crkey = MASTERKEY)
+{
+    let bytes  = CryptoJS.AES.decrypt(ciphertext, crkey);
+    let plaintext = bytes.toString(CryptoJS.enc.Utf8);
+    //console.log("Decrypting " + ciphertext + " with key " + crkey + " to: " + plaintext);
+    return plaintext;
 }

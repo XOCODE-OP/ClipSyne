@@ -34,6 +34,26 @@ input[type="search"]::-webkit-search-decoration
     user-select: none;
 }
 
+* {
+    scrollbar-width: auto;
+    scrollbar-color: #b3b3b3 #292929;
+  }
+
+  /* Chrome, Edge, and Safari */
+  *::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #292929;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: #b3b3b3;
+    border-radius: 0px;
+    border: 0px solid #ffffff;
+  }
+
 html
 {
     /* border: 1px solid orange; */
@@ -48,9 +68,46 @@ body
     width: 100%;
     overflow-y: hidden;
     overflow-x: hidden;
-    background-color: rgb(41, 41, 41);
+    background-color: rgb(61, 61, 61);
     color: rgb(156, 156, 156);
     font-size: 14px;
+}
+
+.struct
+{
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+.results_col
+{
+    background-color: rgb(61, 61, 61);
+    border-right: 1px solid #444;
+    width: 50%;
+    scroll-behavior: smooth;
+    overflow: auto;
+    height: 100vh;
+}
+
+.preview_col
+{
+    background-color: rgb(61, 61, 61);
+    padding: 8px;
+    cursor: auto;
+    flex: 1;
+    scroll-behavior: smooth;
+    overflow: auto;
+    height: 100vh;
+    user-select: text;
+}
+
+.previewpic
+{
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
 }
 
 td:first-child

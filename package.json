@@ -1,6 +1,6 @@
 {
   "name": "ClipSyne",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "my favorite clipboard manager is windows only, so im gonna make my own",
   "main": "main.js",
   "scripts": {
@@ -20,6 +20,7 @@
   "dependencies": {
     "@electron/remote": "^2.0.8",
     "@nut-tree/nut-js": "^2.1.1",
+    "crypto-js": "^4.1.1",
     "electron": "^19.0.3",
     "ffi-napi": "^4.0.3",
     "node-abi": "^2.26.0"

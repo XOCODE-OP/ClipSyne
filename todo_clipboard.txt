@@ -1,0 +1,17 @@
+array of arrays, include other fields like label, mediatype?, DATE
+
+big preview (pre?)
+try to auto EMBED file urls including media
+copy image data?
+
+encryption
+take from password man
+
+business logic account and tiers
+what tiers can do
+
+stub s3 upload, load
+
+login mask
+
+link to purchase plan
